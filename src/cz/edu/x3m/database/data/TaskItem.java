@@ -18,9 +18,10 @@ public class TaskItem {
     private final String[] languages;
     private final Timestamp timeOpen;
     private final Timestamp timeClose;
-    private final int limitMemory;
-    private final int limitTimeOK;
-    private final int limitTimeMax;
+    private final int limitMemoryFalling;
+    private final int limitMemoryNothing;
+    private final int limitTimeFalling;
+    private final int limitTimeNothing;
 
 
 
@@ -34,9 +35,10 @@ public class TaskItem {
         timeClose = getTimestamp (row.getLong ("tasktimeclose"));
 
         id = row.getInt ("taskid");
-        limitMemory = row.getInt ("tasklimitmemory");
-        limitTimeOK = row.getInt ("tasklimittimeok");
-        limitTimeMax = row.getInt ("tasklimittimemax");
+        limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
+        limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
+        limitTimeFalling = row.getInt ("tasklimittimefalling");
+        limitTimeNothing = row.getInt ("tasklimittimenothing");
         gradeMethod = row.getInt ("taskgradeMethod");
         difficulty = row.getInt ("taskdifficulty");
     }
@@ -128,27 +130,36 @@ public class TaskItem {
 
 
     /**
-     * @return the limitMemory
+     * @return the time threshold in ms where overstepping couses point loss 100 - 0 points awarded
      */
-    public int getLimitMemory () {
-        return limitMemory;
+    public int getLimitMemoryFalling () {
+        return limitMemoryFalling;
     }
 
 
 
     /**
-     * @return the time threshold in ms where overstepping couses point loss
+     * @return the time threshold in ms after which is classification zero zero points awarded
      */
-    public int getLimitTimeOK () {
-        return limitTimeOK;
+    public int getLimitMemoryNothing () {
+        return limitMemoryNothing;
     }
 
 
 
     /**
-     * @return the time threshold in ms after which is classification zero
+     * @return the value threshold in kB where overstepping couses point loss 100 - 0 points awarded
      */
-    public int getLimitTimeMax () {
-        return limitTimeMax;
+    public int getLimitTimeFalling () {
+        return limitTimeFalling;
+    }
+
+
+
+    /**
+     * @return the lvalue threshold in kB after which is classification zero zero points awarded
+     */
+    public int getLimitTimeNothing () {
+        return limitTimeNothing;
     }
 }
