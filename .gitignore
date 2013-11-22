@@ -5,6 +5,7 @@
 *.war
 *.ear
 
+nbproject/
 nbproject/private/
 build/
 nbbuild/
