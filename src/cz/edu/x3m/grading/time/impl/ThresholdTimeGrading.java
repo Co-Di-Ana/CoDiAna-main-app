@@ -31,6 +31,6 @@ public class ThresholdTimeGrading extends AbstractGrading {
 
     @Override
     public GradingType getType () {
-        return GradingType.Time;
+        return GradingType.TIME;
     }
 }
