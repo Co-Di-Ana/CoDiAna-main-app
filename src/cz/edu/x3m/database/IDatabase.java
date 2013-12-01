@@ -2,7 +2,7 @@ package cz.edu.x3m.database;
 
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
-import cz.edu.x3m.database.data.SolutionCheckItem;
+import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.plagiarism.PlagiarismResult;
@@ -36,6 +36,7 @@ public interface IDatabase {
 
     /**
      * Loads all queue items
+     * Every item is join to particullar task instance
      *
      * @return list of all items
      * @throws DatabaseException on load error
@@ -59,11 +60,11 @@ public interface IDatabase {
      * Gets solution check detail for the given task id and related (student/teacher) id
      *
      * @param taskID codiana id
-     * @param relatedID student/teacher id
+     * @param userID student/teacher id
      * @return detailed object
      * @throws DatabaseException on error
      */
-    SolutionCheckItem getSolutionCheckItem (int taskID, int relatedID) throws DatabaseException;
+    AttemptItem getSolutionCheckItem (int taskID, int userID) throws DatabaseException;
 
 
 

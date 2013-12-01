@@ -1,13 +1,13 @@
 package cz.edu.x3m.database;
 
-import cz.edu.x3m.core.Config;
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
-import cz.edu.x3m.database.data.SolutionCheckItem;
+import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.utils.Strings;
 import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,9 +81,30 @@ public class LocalDatabase extends AbstractDatabase {
     @Override
     public List<QueueItem> getItems () throws DatabaseException {
         try {
-            String sql = String.format (
-                    "SELECT * FROM %scodiana_queue ORDER BY priority",
-                    Globals.getConfig ().getPrefix ());
+            String sql = Strings.createAndReplace (
+                    "SELECT                                                 ",
+                    "       Q.id,                                           ",
+                    "       Q.taskid,                                       ",
+                    "       Q.userid,                                       ",
+                    "       Q.attemptid,                                    ",
+                    "       Q.type, Q.priority,                             ",
+                    "       C.name AS taskname,                             ",
+                    "       C.mainfilename AS taskmainfilename,             ",
+                    "       C.difficulty AS taskdifficulty,                 ",
+                    "       C.outputmethod AS taskoutputmethod,             ",
+                    "       C.grademethod AS taskgrademethod,               ",
+                    "       C.languages AS tasklanguages,                   ",
+                    "       C.limittimefalling AS tasklimittimefalling,     ",
+                    "       C.limittimenothing AS tasklimittimenothing,     ",
+                    "       C.limitmemoryfalling AS tasklimitmemoryfalling, ",
+                    "       C.limitmemorynothing AS tasklimitmemorynothing  ",
+                    "FROM                                                   ",
+                    "       ::codiana_queue Q                               ",
+                    "LEFT JOIN                                              ",
+                    "       ::codiana C ON (                                ",
+                    "    Q.taskid = C.id                                    ",
+                    ")                                                      ",
+                    "ORDER BY Q.priority DESC                               ");
 
             PreparedStatement statement = connection.prepareStatement (sql);
             ResultSet resultSet = statement.executeQuery ();
@@ -104,13 +125,16 @@ public class LocalDatabase extends AbstractDatabase {
     @Override
     public boolean deleteItem (QueueItem item) throws DatabaseException {
         try {
-            String sql = String.format (
-                    "DELETE FROM %scodiana_queue WHERE taskID = ? LIMIT 1",
-                    Globals.getConfig ().getPrefix ());
+            String sql = Strings.createAndReplace (
+                    "DELETE FROM                    ",
+                    "       ::codiana_queue         ",
+                    "WHERE                          ",
+                    "       taskID = ?              ",
+                    "LIMIT 1                        ");
 
             PreparedStatement statement = connection.prepareStatement (sql);
             statement.setInt (1, item.getId ());
-            
+
             return statement.executeUpdate () == 1;
         } catch (Exception e) {
             throw new DatabaseException (e);
@@ -120,8 +144,39 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public SolutionCheckItem getSolutionCheckItem (int taskID, int relatedID) throws DatabaseException {
-        throw new UnsupportedOperationException ("Not supported yet.");
+    public AttemptItem getSolutionCheckItem (int taskID, int userID) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "SELECT                         ",
+                    "       A.id                    ",
+                    "       A.ordinal               ",
+                    "       A.state                 ",
+                    "       A.language              ",
+                    "       A.detail                ",
+                    "       U.firstname             ",
+                    "       U.lastname              ",
+                    "FROM                           ",
+                    "       ::codiana_attempt A     ",
+                    "LEFT JOIN                      ",
+                    "       ::user U ON (           ",
+                    "           U.id = A.userid     ",
+                    ")                              ",
+                    "WHERE (                        ",
+                    "    A.taskid = ? AND           ",
+                    "    A.userid = ?               ",
+                    ")                              ",
+                    "LIMIT 1                        ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            statement.setInt (1, taskID);
+            statement.setInt (2, userID);
+            ResultSet resultSet = statement.executeQuery ();
+
+            resultSet.next ();
+            return new AttemptItem (taskID, userID, resultSet);
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
     }
 
 

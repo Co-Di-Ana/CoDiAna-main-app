@@ -2,7 +2,6 @@ package cz.edu.x3m.database.data;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 /**
  *
@@ -13,11 +12,8 @@ public class TaskItem {
     private final int id;
     private final String name;
     private final String mainFileName;
-    private final int gradeMethod;
-    private final int difficulty;
+    private final OutputMethodType outputMethod;
     private final String[] languages;
-    private final Timestamp timeOpen;
-    private final Timestamp timeClose;
     private final int limitMemoryFalling;
     private final int limitMemoryNothing;
     private final int limitTimeFalling;
@@ -27,26 +23,22 @@ public class TaskItem {
 
     public TaskItem (ResultSet row) throws SQLException {
 
-        name = row.getString ("name");
+        // basic informations
+        id = row.getInt ("taskid");
+        name = row.getString ("taskname");
         mainFileName = row.getString ("taskmainfilename");
+        int type = row.getInt ("taskoutputmethod");
+        outputMethod = type == 0 ? OutputMethodType.STRICT
+                       : type == 1 ? OutputMethodType.TOLERANT
+                         : type == 2 ? OutputMethodType.VAGUE
+                           : OutputMethodType.UNKNOWN;
         languages = getArray (row.getString ("tasklanguages"));
 
-        timeOpen = getTimestamp (row.getLong ("tasktimeopen"));
-        timeClose = getTimestamp (row.getLong ("tasktimeclose"));
-
-        id = row.getInt ("taskid");
-        limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
-        limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
+        // limits
         limitTimeFalling = row.getInt ("tasklimittimefalling");
         limitTimeNothing = row.getInt ("tasklimittimenothing");
-        gradeMethod = row.getInt ("taskgradeMethod");
-        difficulty = row.getInt ("taskdifficulty");
-    }
-
-
-
-    private Timestamp getTimestamp (long timestamp) throws SQLException {
-        return timestamp == 0 ? null : new Timestamp (timestamp);
+        limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
+        limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
     }
 
 
@@ -85,46 +77,10 @@ public class TaskItem {
 
 
     /**
-     * @return the gradeMethod
-     */
-    public int getGradeMethod () {
-        return gradeMethod;
-    }
-
-
-
-    /**
-     * @return the difficulty
-     */
-    public int getDifficulty () {
-        return difficulty;
-    }
-
-
-
-    /**
      * @return the languages
      */
     public String[] getLanguages () {
         return languages;
-    }
-
-
-
-    /**
-     * @return the timeOpen
-     */
-    public Timestamp getTimeOpen () {
-        return timeOpen;
-    }
-
-
-
-    /**
-     * @return the timeClose
-     */
-    public Timestamp getTimeClose () {
-        return timeClose;
     }
 
 
@@ -161,5 +117,19 @@ public class TaskItem {
      */
     public int getLimitTimeNothing () {
         return limitTimeNothing;
+    }
+
+
+
+    /**
+     * @return the outputMethod
+     */
+    public OutputMethodType getOutputMethod () {
+        return outputMethod;
+    }
+
+    public static enum OutputMethodType {
+
+        STRICT, TOLERANT, VAGUE, UNKNOWN
     }
 }
