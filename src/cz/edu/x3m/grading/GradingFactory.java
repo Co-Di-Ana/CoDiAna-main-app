@@ -24,13 +24,13 @@ public class GradingFactory {
 
     public static IGrading getInstance (GradingType type, String name) {
         switch (type) {
-            case Output:
+            case OUTPUT:
                 return getOutputInstance (name);
 
-            case Time:
+            case TIME:
                 return getTimeInstance (name);
 
-            case Memory:
+            case MEMORY:
                 return getMemoryInstance (name);
         }
 

@@ -33,6 +33,6 @@ public class StrictOutputGrading extends AbstractGrading {
 
     @Override
     public GradingType getType () {
-        return GradingType.Output;
+        return GradingType.OUTPUT;
     }
 }
