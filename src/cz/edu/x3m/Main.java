@@ -1,6 +1,5 @@
 package cz.edu.x3m;
 
-import cz.edu.x3m.core.Config;
 import cz.edu.x3m.core.Globals;
 
 /**
@@ -21,9 +20,31 @@ public class Main {
      * Creates new instance of Main class
      */
     public Main () throws Exception {
-        Globals.init (Config.loadConfig ());
-
+        Globals.init ();
         Globals.getDatabase ().connect ();
-        Globals.getDatabase ().close ();
+        startKnockServer ();
+    }
+
+
+
+    private synchronized void waitFor () throws InterruptedException {
+        Thread serverThread = Globals.createServerThread ();
+        serverThread.start ();
+        serverThread.join ();
+    }
+
+
+
+    private void startKnockServer () throws Exception {
+        while (true) {
+            waitFor ();
+            if (!Globals.getServer ().getConnection ().isValid ()) {
+                System.out.println (Globals.getServer ().getConnection ().getErrorDetails ());
+                break;
+            }
+
+            System.out.println ("updating request");
+            Globals.getController ().update ();
+        }
     }
 }
