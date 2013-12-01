@@ -1,8 +1,8 @@
 package cz.edu.x3m.core;
 
-import cz.edu.x3m.database.exception.DatabaseException;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +23,7 @@ public class Config {
     private static final String TAG_EXTENSION = "extension";
     private static final String TAG_CLASSNAME = "classname";
     private static final String TAG_DATABASE = "database";
+    private static final String TAG_PHP_SERVER = "phpserver";
     //
     private static Config instance;
     private static Element rootNode;
@@ -44,6 +45,9 @@ public class Config {
     private final String password;
     private final String prefix;
     private final String type;
+    private final String socketMessage;
+    private final int socketKnockPort;
+    private final List<String> allowedAddresses;
     private String sshUsername;
     private String sshPassword;
 
@@ -56,34 +60,47 @@ public class Config {
         languages = new HashMap<> ();
 
         List<Element> tmp;
-        Element elem;
+        Element element;
 
         //# languages
         tmp = getItems (TAG_LANGUAGES);
         tmp = tmp.get (0).getChildren (TAG_ITEM);
         for (int i = 0; i < tmp.size (); i++)
-            languages.put ((elem = tmp.get (i)).getChildText (TAG_EXTENSION), elem.getChildText (TAG_CLASSNAME));
+            languages.put ((element = tmp.get (i)).getChildText (TAG_EXTENSION), element.getChildText (TAG_CLASSNAME));
 
         if (languages.isEmpty ())
             throw new ConfigException ("Config file doesn't contain any programming language!");
 
+        //# php server socket setting
+        element = getItems (TAG_PHP_SERVER).get (0);
+        socketKnockPort = Integer.parseInt (getValue (element, "port"));
+        socketMessage = getValue (element, "message");
+        tmp = getItems (element, "allow-access-from", false);
+        
+        allowedAddresses = new ArrayList<> ();
+        if (!tmp.isEmpty ()) {
+            element = tmp.get (0);
+            tmp = element.getChildren ("address");
+            for (int i = 0; i < tmp.size (); i++)
+                allowedAddresses.add (tmp.get (i).getText ());
+        }
 
         //# DB details
-        elem = getItems (TAG_DATABASE).get (0);
-        server = getValue (elem, "dbserver");
-        port = getValue (elem, "dbport");
-        name = getValue (elem, "dbname");
-        prefix = getValue (elem, "dbprefix");
-        username = getValue (elem, "username");
-        password = getValue (elem, "password", false);
-        type = getValue (elem, "dbtype", false);
+        element = getItems (TAG_DATABASE).get (0);
+        server = getValue (element, "dbserver");
+        port = getValue (element, "dbport");
+        name = getValue (element, "dbname");
+        prefix = getValue (element, "dbprefix");
+        username = getValue (element, "username");
+        password = getValue (element, "password", false);
+        type = getValue (element, "dbtype", false);
 
         //# ssh details
-        tmp = getItems (elem, "ssh", false);
+        tmp = getItems (element, "ssh", false);
         if (!tmp.isEmpty ()) {
-            elem = tmp.get (0);
-            sshUsername = getValue (elem, "username");
-            sshPassword = getValue (elem, "password", false);
+            element = tmp.get (0);
+            sshUsername = getValue (element, "username");
+            sshPassword = getValue (element, "password", false);
         }
 
 
@@ -128,8 +145,8 @@ public class Config {
 
 
 
-    public static Config loadConfig () throws JDOMException, IOException, ConfigException {
-        return instance = new Config ();
+    public static Config getInstance () throws JDOMException, IOException, ConfigException {
+        return instance == null ? instance = new Config () : instance;
     }
 
 
@@ -220,5 +237,23 @@ public class Config {
      */
     public String getSSHPassword () {
         return sshPassword;
+    }
+
+
+
+    public int getSocketKnockPort () {
+        return socketKnockPort;
+    }
+
+
+
+    public List<String> getSocketAllowedAddresses () {
+        return allowedAddresses;
+    }
+
+
+
+    public String getSocketMessage () {
+        return socketMessage;
     }
 }
