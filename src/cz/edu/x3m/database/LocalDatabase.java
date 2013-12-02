@@ -4,9 +4,11 @@ import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.utils.Strings;
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -148,12 +150,12 @@ public class LocalDatabase extends AbstractDatabase {
         try {
             String sql = Strings.createAndReplace (
                     "SELECT                         ",
-                    "       A.id                    ",
-                    "       A.ordinal               ",
-                    "       A.state                 ",
-                    "       A.language              ",
-                    "       A.detail                ",
-                    "       U.firstname             ",
+                    "       A.id,                   ",
+                    "       A.ordinal,              ",
+                    "       A.state,                ",
+                    "       A.language,             ",
+                    "       A.detail,               ",
+                    "       U.firstname,            ",
                     "       U.lastname              ",
                     "FROM                           ",
                     "       ::codiana_attempt A     ",
@@ -190,7 +192,40 @@ public class LocalDatabase extends AbstractDatabase {
 
     @Override
     public boolean saveGradingResult (QueueItem item, SolutionGradingResult result) throws DatabaseException {
-        throw new UnsupportedOperationException ("Not supported yet.");
+        return true;
+    }
+
+
+    @Override
+    public boolean saveMeasurementResult (TaskItem item, IExecutionResult result) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "UPDATE                                 ",
+                    "       ::codiana                       ",
+                    "SET (                                  ",
+                    "    limittimefalling = ?,              ",
+                    "    limittimenothing = ?,              ",
+                    "    limitmemoryfalling = ?,            ",
+                    "    limitmemorynothing = ?,            ",
+                    ")                                      ",
+                    "WHERE (                                ",
+                    "    id = ?                             ",
+                    ")                                      ",
+                    "LIMIT 1                                ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            int i = 1;
+
+            statement.setInt (i++, result.getRunTime ());
+            statement.setInt (i++, result.getRunTime () * 2);
+            statement.setInt (i++, result.getMemoryPeak ());
+            statement.setInt (i++, result.getMemoryPeak () * 2);
+            statement.setInt (i++, item.getID ());
+
+            return statement.executeUpdate () == 1;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
     }
 
 

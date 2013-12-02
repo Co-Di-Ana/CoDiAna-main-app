@@ -3,9 +3,11 @@ package cz.edu.x3m.database;
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.util.List;
 
 /**
@@ -35,8 +37,7 @@ public interface IDatabase {
 
 
     /**
-     * Loads all queue items
-     * Every item is join to particullar task instance
+     * Loads all queue items Every item is join to particullar task instance
      *
      * @return list of all items
      * @throws DatabaseException on load error
@@ -101,6 +102,18 @@ public interface IDatabase {
      * @throws DatabaseException on error
      */
     boolean savePlagCheckResult (QueueItem item, PlagiarismResult result) throws DatabaseException;
+
+
+
+    /**
+     * Method save reasult from measurement check Results are detected from execution
+     *
+     * @param item task item
+     * @param result execution result
+     * @return true on success false on no update
+     * @throws DatabaseException when sql error occurs
+     */
+    boolean saveMeasurementResult (TaskItem item, IExecutionResult result) throws DatabaseException;
 
 
 
