@@ -51,7 +51,7 @@ public class SolutionGradingTest {
     @Test(expected = GradingRuntimeException.class)
     public void testAddGrading () {
         System.out.println ("addGrading");
-        IGrading grading = GradingFactory.getInstance (GradingType.Output, GradingFactory.TYPE_OUTPUT_STRICT);
+        IGrading grading = GradingFactory.getInstance (GradingType.OUTPUT, GradingFactory.TYPE_OUTPUT_STRICT);
         SolutionGrading instance = new SolutionGrading ();
         
         instance.addGrading (grading);
@@ -89,7 +89,7 @@ public class SolutionGradingTest {
     public void testSetSettings2 () {
         System.out.println ("setSettings wrong class");
         SolutionGrading instance = new SolutionGrading ();
-        instance.setSettings (new TimeGradeSetting (true, null, null));
+        instance.setSettings (new TimeGradeSetting (true, 0, 0));
     }
     
 
