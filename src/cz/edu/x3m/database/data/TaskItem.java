@@ -1,5 +1,6 @@
 package cz.edu.x3m.database.data;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -27,11 +28,7 @@ public class TaskItem {
         id = row.getInt ("taskid");
         name = row.getString ("taskname");
         mainFileName = row.getString ("taskmainfilename");
-        int type = row.getInt ("taskoutputmethod");
-        outputMethod = type == 0 ? OutputMethodType.STRICT
-                       : type == 1 ? OutputMethodType.TOLERANT
-                         : type == 2 ? OutputMethodType.VAGUE
-                           : OutputMethodType.UNKNOWN;
+        outputMethod = OutputMethodType.getByValue (row.getInt ("taskoutputmethod"));
         languages = getArray (row.getString ("tasklanguages"));
 
         // limits
@@ -49,8 +46,30 @@ public class TaskItem {
 
 
 
+    private File getFile (String extension) {
+        return new File (
+                String.format ("./%s/%s.%s",
+                               String.format ("task-%04d", id),
+                               mainFileName,
+                               extension));
+    }
+
+
+
+    public File getOutputFile () {
+        return getFile ("out");
+    }
+
+
+
+    public File getErrorFile () {
+        return getFile ("err");
+    }
+
+
+
     /**
-     * @return the id
+     * @return the task id
      */
     public int getID () {
         return id;
@@ -59,7 +78,7 @@ public class TaskItem {
 
 
     /**
-     * @return the name
+     * @return the task name
      */
     public String getName () {
         return name;
@@ -68,7 +87,7 @@ public class TaskItem {
 
 
     /**
-     * @return the mainFileName
+     * @return the task mainFileName, e.g. class name
      */
     public String getMainFileName () {
         return mainFileName;
@@ -77,7 +96,7 @@ public class TaskItem {
 
 
     /**
-     * @return the languages
+     * @return array of supported languages (extensions)
      */
     public String[] getLanguages () {
         return languages;
@@ -130,6 +149,34 @@ public class TaskItem {
 
     public static enum OutputMethodType {
 
-        STRICT, TOLERANT, VAGUE, UNKNOWN
+        STRICT ("strict"), TOLERANT ("tolerant"), VAGUE ("vague"), UNKNOWN ("unknown");
+        private final String value;
+
+
+
+        private OutputMethodType (String value) {
+            this.value = value;
+        }
+
+
+
+        public String value () {
+            return value;
+        }
+
+
+
+        public static OutputMethodType getByValue (int value) {
+            switch (value) {
+                case 0:
+                    return STRICT;
+                case 1:
+                    return TOLERANT;
+                case 2:
+                    return VAGUE;
+                default:
+                    return UNKNOWN;
+            }
+        }
     }
 }

@@ -10,8 +10,6 @@ import java.sql.SQLException;
  */
 public class QueueItem {
 
-    public static final String TYPE_SOLUTION_CHECK = "solutionCheck";
-    public static final String TYPE_PLAGIARISM_CHECK = "plagiarismCheck";
     private final TaskItem taskItem;
     private AbstractDetailItem detailItem;
     private final QueueType type;
@@ -29,16 +27,13 @@ public class QueueItem {
         taskID = row.getInt ("taskid");
         userID = row.getInt ("userid");
         attemptID = row.getInt ("attemptid");
-        int tmp = row.getInt ("type");
+        type = QueueType.getByValue (row.getInt ("type"));
         priority = row.getInt ("priority");
 
-        type = tmp == 0 ? QueueType.TYPE_SOLUTION_CHECK
-               : tmp == 1 ? QueueType.TYPE_PLAGIARISM_CHECK
-                 : QueueType.TYPE_UNKNOWN;
 
         //# unsupported type
         if (type == QueueType.TYPE_UNKNOWN)
-            throw new DatabaseException ("Unknown queue type '%s'", tmp);
+            throw new DatabaseException ("Unknown queue item type");
     }
 
 
@@ -129,6 +124,22 @@ public class QueueItem {
 
         TYPE_SOLUTION_CHECK,
         TYPE_PLAGIARISM_CHECK,
-        TYPE_UNKNOWN
+        TYPE_MEASURE_VALUES,
+        TYPE_UNKNOWN;
+
+
+
+        public static QueueType getByValue (int value) {
+            switch (value) {
+                case 0:
+                    return TYPE_SOLUTION_CHECK;
+                case 1:
+                    return TYPE_PLAGIARISM_CHECK;
+                case 2:
+                    return TYPE_MEASURE_VALUES;
+                default:
+                    return TYPE_UNKNOWN;
+            }
+        }
     }
 }

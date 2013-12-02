@@ -1,5 +1,6 @@
 package cz.edu.x3m.database.data;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -16,6 +17,7 @@ public class AttemptItem extends AbstractDetailItem {
     private String firstname;
     private String lastname;
     private boolean isComplex;
+    private TaskItem taskItem;
 
 
 
@@ -27,7 +29,7 @@ public class AttemptItem extends AbstractDetailItem {
         language = row.getString ("language");
         firstname = row.getString ("firstname");
         lastname = row.getString ("lastname");
-        isComplex = row.getInt (language) == 1;
+        isComplex = row.getInt ("detail") == 1;
     }
 
 
@@ -100,5 +102,34 @@ public class AttemptItem extends AbstractDetailItem {
      */
     public boolean isComplex () {
         return isComplex;
+    }
+
+
+
+    private File getFile (String extension) {
+        return new File (
+                String.format ("./%s/%s/curr/%s.%s",
+                               String.format ("task-%04d", id),
+                               String.format ("user-%05d", id),
+                               taskItem.getMainFileName (),
+                               extension));
+    }
+
+
+
+    public File getOutputFile () {
+        return getFile ("out");
+    }
+
+
+
+    public File getErrorFile () {
+        return getFile ("err");
+    }
+
+
+
+    public void setTask (TaskItem taskItem) {
+        this.taskItem = taskItem;
     }
 }
