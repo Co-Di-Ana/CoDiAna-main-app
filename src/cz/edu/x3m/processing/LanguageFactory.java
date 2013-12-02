@@ -1,6 +1,5 @@
 package cz.edu.x3m.processing;
 
-import cz.edu.x3m.core.Config;
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
@@ -22,7 +21,7 @@ public class LanguageFactory {
             String classname = Globals.getConfig ().getLanguageClassName (extension);
             if (classname == null)
                 throw new ExecutionException ("Unregistered extension '.%s'", extension);
-
+            
             return (IExecutableLanguage) loader.get (classname);
         } catch (Exception ex) {
             throw new ExecutionException (ex);
