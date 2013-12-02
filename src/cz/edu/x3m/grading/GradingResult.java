@@ -11,7 +11,7 @@ abstract public class GradingResult {
 
 
     public GradingResult (double result) {
-        this.result = result;
+        this.result = Double.isNaN (result) ? 0 : result;
     }
 
 

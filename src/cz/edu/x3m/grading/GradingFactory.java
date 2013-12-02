@@ -13,12 +13,9 @@ public class GradingFactory {
     public static final String TYPE_OUTPUT_STRICT = "strict";
     public static final String TYPE_OUTPUT_NORMAL = "normal";
     public static final String TYPE_OUTPUT_VAGUE = "vague";
-    public static final String TYPE_TIME_STRICT = "strict";
+    
     public static final String TYPE_TIME_THRESHOLD = "threshold";
-    public static final String TYPE_TIME_VAGUE = "vague";
-    public static final String TYPE_MEMORY_STRICT = "strict";
-    public static final String TYPE_MEMORY_NORMAL = "threshold";
-    public static final String TYPE_MEMORY_VAGUE = "vague";
+    public static final String TYPE_MEMORY_THRESHOLD = "threshold";
 
 
 

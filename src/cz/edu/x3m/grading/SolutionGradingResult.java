@@ -22,18 +22,54 @@ public class SolutionGradingResult extends GradingResult {
 
 
 
+    /**
+     * @return the outputGradeResult
+     */
+    public OutputGradeResult getOutputGradeResult () {
+        return outputGradeResult;
+    }
+
+
+
+    /**
+     * @param outputGradeResult the outputGradeResult to set
+     */
     public void setOutputGradeResult (OutputGradeResult outputGradeResult) {
         this.outputGradeResult = outputGradeResult;
     }
 
 
 
+    /**
+     * @return the timeGradeResult
+     */
+    public TimeGradeResult getTimeGradeResult () {
+        return timeGradeResult;
+    }
+
+
+
+    /**
+     * @param timeGradeResult the timeGradeResult to set
+     */
     public void setTimeGradeResult (TimeGradeResult timeGradeResult) {
         this.timeGradeResult = timeGradeResult;
     }
 
 
 
+    /**
+     * @return the memoryGradeResult
+     */
+    public MemoryGradeResult getMemoryGradeResult () {
+        return memoryGradeResult;
+    }
+
+
+
+    /**
+     * @param memoryGradeResult the memoryGradeResult to set
+     */
     public void setMemoryGradeResult (MemoryGradeResult memoryGradeResult) {
         this.memoryGradeResult = memoryGradeResult;
     }
