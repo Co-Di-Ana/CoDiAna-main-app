@@ -11,7 +11,7 @@ import java.io.IOException;
 /**
  * @author Jan Hybs
  */
-public class StrictOutputGrading extends AbstractOutputGrading {
+public class TolerantOutputGrading extends AbstractOutputGrading {
 
     @Override
     protected GradingResult compare (File originalFile, File comparedFile) throws IOException {
@@ -28,15 +28,35 @@ public class StrictOutputGrading extends AbstractOutputGrading {
 
         while (!origEnd && !userEnd) {
 
-            // read original line
-            if (!origEnd)
-                if ((origLine = origReader.readLine ()) == null)
-                    origEnd = true;
+            // read original lines (skip white lines)
+            if (!origEnd) {
+                do {
+                    origLine = origReader.readLine ();
+                    if (origLine == null) {
+                        origEnd = true;
+                        break;
+                    } else {
+                        if (Strings.isOnlyWhitespace (origLine))
+                            continue;
+                        break;
+                    }
+                } while (true);
+            }
 
-            // read user line
-            if (!userEnd)
-                if ((userLine = userReader.readLine ()) == null)
-                    userEnd = true;
+            // read original lines (skip white lines)
+            if (!userEnd) {
+                do {
+                    userLine = userReader.readLine ();
+                    if (userLine == null) {
+                        userEnd = true;
+                        break;
+                    } else {
+                        if (Strings.isOnlyWhitespace (userLine))
+                            continue;
+                        break;
+                    }
+                } while (true);
+            }
 
             //# both of them finished?
             if (origEnd && userEnd)
