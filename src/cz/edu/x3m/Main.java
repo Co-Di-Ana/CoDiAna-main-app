@@ -22,6 +22,7 @@ public class Main {
     public Main () throws Exception {
         Globals.init ();
         Globals.getDatabase ().connect ();
+        Globals.getController ().update ();
         startKnockServer ();
     }
 
@@ -43,7 +44,6 @@ public class Main {
                 break;
             }
 
-            System.out.println ("updating request");
             Globals.getController ().update ();
         }
     }
