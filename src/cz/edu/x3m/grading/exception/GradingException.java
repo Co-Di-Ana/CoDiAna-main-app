@@ -37,4 +37,17 @@ public class GradingException extends Exception {
     public GradingException (String format, Object... args) {
         super (String.format (format, args));
     }
+
+
+    /**
+     * Constructs an instance of
+     * <code>GradingException</code> with the specified exception object.
+     *
+     * @param case the exception object.
+     */
+    public GradingException (Throwable cause) {
+        super (cause);
+    }
+    
+    
 }

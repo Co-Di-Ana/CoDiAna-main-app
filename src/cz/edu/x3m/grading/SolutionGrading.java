@@ -55,13 +55,13 @@ public class SolutionGrading extends AbstractGrading {
 
         SolutionGradingResult result = new SolutionGradingResult (totalResult / totalGradings);
 
-        if ((grading = getGrading (GradingType.Output)) != null)
+        if ((grading = getGrading (GradingType.OUTPUT)) != null)
             result.setOutputGradeResult ((OutputGradeResult) grading.getGradingResult ());
 
-        if ((grading = getGrading (GradingType.Time)) != null)
+        if ((grading = getGrading (GradingType.TIME)) != null)
             result.setTimeGradeResult ((TimeGradeResult) grading.getGradingResult ());
 
-        if ((grading = getGrading (GradingType.Memory)) != null)
+        if ((grading = getGrading (GradingType.MEMORY)) != null)
             result.setMemoryGradeResult ((MemoryGradeResult) grading.getGradingResult ());
 
 
@@ -92,6 +92,6 @@ public class SolutionGrading extends AbstractGrading {
 
     @Override
     public GradingType getType () {
-        return GradingType.Final;
+        return GradingType.FINAL;
     }
 }

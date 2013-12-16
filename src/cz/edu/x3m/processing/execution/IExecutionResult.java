@@ -6,4 +6,16 @@ package cz.edu.x3m.processing.execution;
  */
 public interface IExecutionResult {
 
+
+
+    public boolean isSuccessful ();
+
+
+
+    public int getRunTime ();
+
+
+
+    public int getMemoryPeak ();
+
 }

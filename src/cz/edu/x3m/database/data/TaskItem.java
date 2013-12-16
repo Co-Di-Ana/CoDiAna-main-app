@@ -1,8 +1,8 @@
 package cz.edu.x3m.database.data;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 /**
  *
@@ -13,11 +13,8 @@ public class TaskItem {
     private final int id;
     private final String name;
     private final String mainFileName;
-    private final int gradeMethod;
-    private final int difficulty;
+    private final OutputMethodType outputMethod;
     private final String[] languages;
-    private final Timestamp timeOpen;
-    private final Timestamp timeClose;
     private final int limitMemoryFalling;
     private final int limitMemoryNothing;
     private final int limitTimeFalling;
@@ -27,26 +24,18 @@ public class TaskItem {
 
     public TaskItem (ResultSet row) throws SQLException {
 
-        name = row.getString ("name");
+        // basic informations
+        id = row.getInt ("taskid");
+        name = row.getString ("taskname");
         mainFileName = row.getString ("taskmainfilename");
+        outputMethod = OutputMethodType.getByValue (row.getInt ("taskoutputmethod"));
         languages = getArray (row.getString ("tasklanguages"));
 
-        timeOpen = getTimestamp (row.getLong ("tasktimeopen"));
-        timeClose = getTimestamp (row.getLong ("tasktimeclose"));
-
-        id = row.getInt ("taskid");
-        limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
-        limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
+        // limits
         limitTimeFalling = row.getInt ("tasklimittimefalling");
         limitTimeNothing = row.getInt ("tasklimittimenothing");
-        gradeMethod = row.getInt ("taskgradeMethod");
-        difficulty = row.getInt ("taskdifficulty");
-    }
-
-
-
-    private Timestamp getTimestamp (long timestamp) throws SQLException {
-        return timestamp == 0 ? null : new Timestamp (timestamp);
+        limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
+        limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
     }
 
 
@@ -57,8 +46,30 @@ public class TaskItem {
 
 
 
+    private File getFile (String extension) {
+        return new File (
+                String.format ("./%s/%s.%s",
+                               String.format ("task-%04d", id),
+                               mainFileName,
+                               extension));
+    }
+
+
+
+    public File getOutputFile () {
+        return getFile ("out");
+    }
+
+
+
+    public File getErrorFile () {
+        return getFile ("err");
+    }
+
+
+
     /**
-     * @return the id
+     * @return the task id
      */
     public int getID () {
         return id;
@@ -67,7 +78,7 @@ public class TaskItem {
 
 
     /**
-     * @return the name
+     * @return the task name
      */
     public String getName () {
         return name;
@@ -76,7 +87,7 @@ public class TaskItem {
 
 
     /**
-     * @return the mainFileName
+     * @return the task mainFileName, e.g. class name
      */
     public String getMainFileName () {
         return mainFileName;
@@ -85,46 +96,10 @@ public class TaskItem {
 
 
     /**
-     * @return the gradeMethod
-     */
-    public int getGradeMethod () {
-        return gradeMethod;
-    }
-
-
-
-    /**
-     * @return the difficulty
-     */
-    public int getDifficulty () {
-        return difficulty;
-    }
-
-
-
-    /**
-     * @return the languages
+     * @return array of supported languages (extensions)
      */
     public String[] getLanguages () {
         return languages;
-    }
-
-
-
-    /**
-     * @return the timeOpen
-     */
-    public Timestamp getTimeOpen () {
-        return timeOpen;
-    }
-
-
-
-    /**
-     * @return the timeClose
-     */
-    public Timestamp getTimeClose () {
-        return timeClose;
     }
 
 
@@ -161,5 +136,47 @@ public class TaskItem {
      */
     public int getLimitTimeNothing () {
         return limitTimeNothing;
+    }
+
+
+
+    /**
+     * @return the outputMethod
+     */
+    public OutputMethodType getOutputMethod () {
+        return outputMethod;
+    }
+
+    public static enum OutputMethodType {
+
+        STRICT ("strict"), TOLERANT ("tolerant"), VAGUE ("vague"), UNKNOWN ("unknown");
+        private final String value;
+
+
+
+        private OutputMethodType (String value) {
+            this.value = value;
+        }
+
+
+
+        public String value () {
+            return value;
+        }
+
+
+
+        public static OutputMethodType getByValue (int value) {
+            switch (value) {
+                case 0:
+                    return STRICT;
+                case 1:
+                    return TOLERANT;
+                case 2:
+                    return VAGUE;
+                default:
+                    return UNKNOWN;
+            }
+        }
     }
 }

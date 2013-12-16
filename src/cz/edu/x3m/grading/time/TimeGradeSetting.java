@@ -1,34 +1,39 @@
 package cz.edu.x3m.grading.time;
 
 import cz.edu.x3m.grading.GradingSetting;
-import java.io.File;
 
 /**
  *
  * @author Jan Hybs
  */
 public class TimeGradeSetting extends GradingSetting {
-    
-    private final File originalFile;
-    private final File comparedFile;
-    
-    
-    
-    public TimeGradeSetting (boolean isManaging, File originalFile, File comparedFile) {
+
+    private final int limitTimeFalling;
+    private final int limitTimeNothing;
+
+
+
+    public TimeGradeSetting (Boolean isManaging, int limitTimeFalling, int limitTimeNothing) {
         super (isManaging);
-        this.originalFile = originalFile;
-        this.comparedFile = comparedFile;
+        this.limitTimeFalling = limitTimeFalling;
+        this.limitTimeNothing = limitTimeNothing;
     }
-    
-    
-    
-    public File getOriginalFile () {
-        return originalFile;
+
+
+
+    /**
+     * @return the limitTimeFalling
+     */
+    public int getLimitTimeFalling () {
+        return limitTimeFalling;
     }
-    
-    
-    
-    public File getComparedFile () {
-        return comparedFile;
+
+
+
+    /**
+     * @return the limitTimeNothing
+     */
+    public int getLimitTimeNothing () {
+        return limitTimeNothing;
     }
 }

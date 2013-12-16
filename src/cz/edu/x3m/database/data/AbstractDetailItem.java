@@ -6,24 +6,30 @@ package cz.edu.x3m.database.data;
  */
 abstract public class AbstractDetailItem {
 
-    protected final int relatedID;
-    protected final int taskID;
+    private final int userID;
+    private final int taskID;
 
 
 
-    public AbstractDetailItem (int taskID, int relatedID) {
-        this.relatedID = relatedID;
+    public AbstractDetailItem (int taskID, int userID) {
+        this.userID = userID;
         this.taskID = taskID;
     }
 
 
 
-    public int getRelatedID () {
-        return relatedID;
+    /**
+     * @return the user ID
+     */
+    public int getUserID () {
+        return userID;
     }
 
 
 
+    /**
+     * @return the task ID
+     */
     public int getTaskID () {
         return taskID;
     }
