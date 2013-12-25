@@ -2,8 +2,7 @@ package cz.edu.x3m.plagiarism;
 
 /**
  *
- *  @author Jan Hybs
+ * @author Jan Hybs
  */
-public class PlagiarismResult {
-
+public class PlagiarismResult implements IPlagiarismResult {
 }
