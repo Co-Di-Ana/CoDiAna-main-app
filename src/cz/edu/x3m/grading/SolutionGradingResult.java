@@ -8,7 +8,7 @@ import cz.edu.x3m.grading.time.TimeGradeResult;
  *
  * @author Jan Hybs
  */
-public class SolutionGradingResult extends GradingResult {
+public class SolutionGradingResult extends GradingResult implements ISolutionGradingResult {
 
     private OutputGradeResult outputGradeResult;
     private TimeGradeResult timeGradeResult;
@@ -22,54 +22,42 @@ public class SolutionGradingResult extends GradingResult {
 
 
 
-    /**
-     * @return the outputGradeResult
-     */
+    @Override
     public OutputGradeResult getOutputGradeResult () {
         return outputGradeResult;
     }
 
 
 
-    /**
-     * @param outputGradeResult the outputGradeResult to set
-     */
+    @Override
     public void setOutputGradeResult (OutputGradeResult outputGradeResult) {
         this.outputGradeResult = outputGradeResult;
     }
 
 
 
-    /**
-     * @return the timeGradeResult
-     */
+    @Override
     public TimeGradeResult getTimeGradeResult () {
         return timeGradeResult;
     }
 
 
 
-    /**
-     * @param timeGradeResult the timeGradeResult to set
-     */
+    @Override
     public void setTimeGradeResult (TimeGradeResult timeGradeResult) {
         this.timeGradeResult = timeGradeResult;
     }
 
 
 
-    /**
-     * @return the memoryGradeResult
-     */
+    @Override
     public MemoryGradeResult getMemoryGradeResult () {
         return memoryGradeResult;
     }
 
 
 
-    /**
-     * @param memoryGradeResult the memoryGradeResult to set
-     */
+    @Override
     public void setMemoryGradeResult (MemoryGradeResult memoryGradeResult) {
         this.memoryGradeResult = memoryGradeResult;
     }

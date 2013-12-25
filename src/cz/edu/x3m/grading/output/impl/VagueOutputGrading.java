@@ -57,6 +57,6 @@ public class VagueOutputGrading extends AbstractOutputGrading {
         }
 
         double result = correctLines / ((double) (correctLines + incorrectLines));
-        return new OutputGradeResult (result, correctLines, incorrectLines);
+        return this.result = new OutputGradeResult (result, correctLines, incorrectLines);
     }
 }

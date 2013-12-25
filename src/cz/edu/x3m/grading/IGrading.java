@@ -1,5 +1,6 @@
 package cz.edu.x3m.grading;
 
+import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.grading.exception.GradingException;
 
 /**
@@ -8,21 +9,48 @@ import cz.edu.x3m.grading.exception.GradingException;
  */
 public interface IGrading {
 
-    void setSettings (GradingSetting setting);
+    /**
+     * Method sets queue item value
+     *
+     * @param item
+     */
+    void setQueueItem (QueueItem item);
 
 
 
-    GradingSetting getSettings ();
+    /**
+     * Method return current value of queue item
+     *
+     * @return queue item or null
+     */
+    QueueItem getQueueItem ();
 
 
 
+    /**
+     * Method runs algorithm for detecting desired value
+     *
+     * @return object containing result of the algorithm
+     * @throws GradingException when error occurs
+     */
     GradingResult grade () throws GradingException;
 
 
 
+    /**
+     * Method returns type of this object
+     *
+     * @return type of this object
+     */
     GradingType getType ();
 
 
 
-    GradingResult getGradingResult ();
+    /**
+     * Method only retuns object containing result of the algorithm
+     *
+     * @return object containing result of the algorithm
+     * @see IGrading#grade() 
+     */
+    GradingResult getResult ();
 }

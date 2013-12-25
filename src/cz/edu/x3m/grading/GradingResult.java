@@ -4,7 +4,7 @@ package cz.edu.x3m.grading;
  *
  * @author Jan Hybs
  */
-abstract public class GradingResult {
+abstract public class GradingResult implements IGradingResult {
 
     protected final double result;
 
@@ -16,7 +16,15 @@ abstract public class GradingResult {
 
 
 
+    @Override
     public double getResult () {
         return result;
+    }
+
+
+
+    @Override
+    public int getPercent () {
+        return (int) (getResult () * 100);
     }
 }

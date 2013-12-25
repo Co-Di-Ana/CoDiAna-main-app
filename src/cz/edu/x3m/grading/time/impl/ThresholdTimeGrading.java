@@ -2,11 +2,10 @@ package cz.edu.x3m.grading.time.impl;
 
 import cz.edu.x3m.grading.AbstractGrading;
 import cz.edu.x3m.grading.GradingResult;
-import cz.edu.x3m.grading.GradingSetting;
 import cz.edu.x3m.grading.exception.GradingException;
 import cz.edu.x3m.grading.GradingType;
-import cz.edu.x3m.grading.exception.GradingRuntimeException;
-import cz.edu.x3m.grading.time.TimeGradeSetting;
+import cz.edu.x3m.grading.time.TimeGradeResult;
+import cz.edu.x3m.utils.MathLib;
 
 /**
  * @author Jan Hybs
@@ -15,16 +14,13 @@ public class ThresholdTimeGrading extends AbstractGrading {
 
     @Override
     public GradingResult grade () throws GradingException {
-        return null;
-    }
+        int runTime = queueItem.getExecutionResult ().getRunTime ();
+        double timeResult = MathLib.getRelativeBisectedValue (
+                runTime,
+                queueItem.getTaskItem ().getLimitTimeFalling (),
+                queueItem.getTaskItem ().getLimitTimeNothing ());
 
-
-
-    @Override
-    public void setSettings (GradingSetting settings) {
-        super.setSettings (settings);
-        if (!(settings instanceof TimeGradeSetting))
-            throw new GradingRuntimeException ("Settings must by type TimeGradeSetting");
+        return this.result = new TimeGradeResult (timeResult, runTime);
     }
 
 

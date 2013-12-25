@@ -1,7 +1,7 @@
 package cz.edu.x3m.grading;
 
+import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.grading.exception.GradingException;
-import cz.edu.x3m.grading.exception.GradingRuntimeException;
 
 /**
  *
@@ -9,38 +9,36 @@ import cz.edu.x3m.grading.exception.GradingRuntimeException;
  */
 abstract public class AbstractGrading implements IGrading {
 
-    protected GradingSetting settings;
+    protected QueueItem queueItem;
     protected GradingResult result;
 
 
 
     @Override
-    public void setSettings (GradingSetting settings) {
-        if (settings == null)
-            throw new GradingRuntimeException ("Settings cannot be null");
-        this.settings = settings;
+    public void setQueueItem (QueueItem item) {
+        this.queueItem = item;
     }
 
 
 
     @Override
-    public GradingSetting getSettings () {
-        return settings;
+    public QueueItem getQueueItem () {
+        return queueItem;
     }
 
 
 
     @Override
     public GradingResult grade () throws GradingException {
-        if (settings == null)
-            throw new GradingException ("Settings cannot be null");
+        if (queueItem == null)
+            throw new GradingException ("QueueItem cannot be null");
         return null;
     }
 
 
 
     @Override
-    public GradingResult getGradingResult () {
+    public GradingResult getResult () {
         return result;
     }
 }
