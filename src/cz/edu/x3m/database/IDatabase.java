@@ -4,9 +4,10 @@ import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.data.TaskItem;
+import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
-import cz.edu.x3m.grading.SolutionGradingResult;
-import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.grading.ISolutionGradingResult;
+import cz.edu.x3m.plagiarism.IPlagiarismResult;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.util.List;
 
@@ -53,7 +54,18 @@ public interface IDatabase {
      * @return true if deletion was successful otherwise false
      * @throws DatabaseException on error
      */
-    boolean deleteItem (QueueItem item) throws DatabaseException;
+    boolean deleteQueueItem (QueueItem item) throws DatabaseException;
+
+
+
+    /**
+     * Method deletes item from Database
+     *
+     * @param item to be deleted
+     * @return true if deletion was successful otherwise false
+     * @throws DatabaseException on error
+     */
+    boolean deleteAttemptItem (QueueItem item) throws DatabaseException;
 
 
 
@@ -89,7 +101,7 @@ public interface IDatabase {
      * @return true on success false on update
      * @throws DatabaseException on error
      */
-    boolean saveGradingResult (QueueItem item, SolutionGradingResult result) throws DatabaseException;
+    boolean saveGradingResult (QueueItem item, ISolutionGradingResult result) throws DatabaseException;
 
 
 
@@ -101,7 +113,7 @@ public interface IDatabase {
      * @return true on success false on update
      * @throws DatabaseException on error
      */
-    boolean savePlagCheckResult (QueueItem item, PlagiarismResult result) throws DatabaseException;
+    boolean savePlagCheckResult (QueueItem item, IPlagiarismResult result) throws DatabaseException;
 
 
 
@@ -124,4 +136,8 @@ public interface IDatabase {
      * @throws DatabaseException on empty settings
      */
     void setSettings (DatabaseSetting settings) throws DatabaseException;
+
+
+
+    boolean saveGradingResult (QueueItem queueItem, AttemptStateType state, String details) throws DatabaseException;
 }

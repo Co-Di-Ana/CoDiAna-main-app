@@ -1,13 +1,16 @@
-package cz.edu.x3m.database;
+package cz.edu.x3m.database.impl;
 
 import cz.edu.x3m.core.Globals;
+import cz.edu.x3m.database.AbstractDatabase;
+import cz.edu.x3m.database.DatabaseSetting;
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.data.TaskItem;
+import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
-import cz.edu.x3m.grading.SolutionGradingResult;
-import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.grading.ISolutionGradingResult;
+import cz.edu.x3m.plagiarism.IPlagiarismResult;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.utils.Strings;
 import java.nio.charset.Charset;
@@ -17,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -125,17 +129,38 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean deleteItem (QueueItem item) throws DatabaseException {
+    public boolean deleteQueueItem (QueueItem item) throws DatabaseException {
         try {
             String sql = Strings.createAndReplace (
                     "DELETE FROM                    ",
                     "       ::codiana_queue         ",
                     "WHERE                          ",
-                    "       taskID = ?              ",
+                    "       id = ?                  ",
                     "LIMIT 1                        ");
 
             PreparedStatement statement = connection.prepareStatement (sql);
             statement.setInt (1, item.getId ());
+
+            return statement.executeUpdate () == 1;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
+    }
+
+
+
+    @Override
+    public boolean deleteAttemptItem (QueueItem item) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "DELETE FROM                    ",
+                    "       ::codiana_attempt       ",
+                    "WHERE                          ",
+                    "       id = ?                  ",
+                    "LIMIT 1                        ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            statement.setInt (1, item.getAttemptID ());
 
             return statement.executeUpdate () == 1;
         } catch (Exception e) {
@@ -191,9 +216,52 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean saveGradingResult (QueueItem item, SolutionGradingResult result) throws DatabaseException {
-        return true;
+    public boolean saveGradingResult (QueueItem item, ISolutionGradingResult result) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "UPDATE                                 ",
+                    "       ::codiana_attempt               ",
+                    "SET                                    ",
+                    "    runtime = ?,                       ",
+                    "    runoutput = ?,                     ",
+                    //"    runmemory = ?,                   ",
+                    "    resulttime = ?,                    ",
+                    "    resultoutput = ?,                  ",
+                    //"    resultmemory = ?,                ",
+                    "    resultfinal = ?,                   ",
+                    "    resultnote = ?,                    ",
+                    "    state = ?                          ",
+                    "                                       ",
+                    "WHERE (                                ",
+                    "    id = ?                             ",
+                    ")                                      ",
+                    "LIMIT 1                                ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            int i = 1;
+
+            statement.setInt (i++, result.getTimeGradeResult ().getRunTime ());
+            statement.setInt (i++, result.getOutputGradeResult ().getCorrectLines ());
+            //statement.setInt (i++, result.getMemoryGradeResult ().getMemoryPeak ());
+
+            statement.setInt (i++, result.getTimeGradeResult ().getPercent ());
+            statement.setInt (i++, result.getOutputGradeResult ().getPercent ());
+            //statement.setInt (i++, result.getMemoryGradeResult ().getPercent ());
+
+            statement.setInt (i++, result.getPercent ());
+            statement.setNull (i++, Types.VARCHAR);
+
+            // correct result/state
+            statement.setInt (i++, 1);
+
+            statement.setInt (i++, item.getAttemptID ());
+
+            return statement.executeUpdate () == 1;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
     }
+
 
 
     @Override
@@ -202,12 +270,12 @@ public class LocalDatabase extends AbstractDatabase {
             String sql = Strings.createAndReplace (
                     "UPDATE                                 ",
                     "       ::codiana                       ",
-                    "SET (                                  ",
+                    "SET                                    ",
                     "    limittimefalling = ?,              ",
                     "    limittimenothing = ?,              ",
                     "    limitmemoryfalling = ?,            ",
-                    "    limitmemorynothing = ?,            ",
-                    ")                                      ",
+                    "    limitmemorynothing = ?             ",
+                    "                                       ",
                     "WHERE (                                ",
                     "    id = ?                             ",
                     ")                                      ",
@@ -231,7 +299,7 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean savePlagCheckResult (QueueItem item, PlagiarismResult result) throws DatabaseException {
+    public boolean savePlagCheckResult (QueueItem item, IPlagiarismResult result) throws DatabaseException {
         throw new UnsupportedOperationException ("Not supported yet.");
     }
 
@@ -240,5 +308,40 @@ public class LocalDatabase extends AbstractDatabase {
     @Override
     public void setSettings (DatabaseSetting settings) throws DatabaseException {
         throw new UnsupportedOperationException ("Not supported yet.");
+    }
+
+
+
+    @Override
+    public boolean saveGradingResult (QueueItem queueItem, AttemptStateType state, String details) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "UPDATE                                 ",
+                    "       ::codiana_attempt               ",
+                    "SET                                    ",
+                    "    state = ?,                         ",
+                    "    resultnote = ?                     ",
+                    "                                       ",
+                    "WHERE (                                ",
+                    "    id = ?                             ",
+                    ")                                      ",
+                    "LIMIT 1                                ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            int i = 1;
+
+            statement.setInt (i++, state.value ());
+            if (details == null || details.isEmpty ())
+                statement.setNull (i++, Types.VARCHAR);
+            else
+                statement.setString (i++, details);
+
+            statement.setInt (i++, 1);
+            statement.setInt (i++, queueItem.getAttemptID ());
+
+            return statement.executeUpdate () == 1;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
     }
 }

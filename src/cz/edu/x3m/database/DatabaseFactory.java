@@ -1,5 +1,7 @@
 package cz.edu.x3m.database;
 
+import cz.edu.x3m.database.impl.LocalDatabase;
+
 /**
  *
  * @author Jan Hybs

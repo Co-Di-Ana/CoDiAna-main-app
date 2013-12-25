@@ -6,7 +6,7 @@ import cz.edu.x3m.database.exception.DatabaseException;
  *
  * @author Jan Hybs
  */
-abstract class AbstractDatabase implements IDatabase {
+abstract public class AbstractDatabase implements IDatabase {
 
     protected DatabaseSetting settings;
 
