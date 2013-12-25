@@ -91,13 +91,13 @@ fi
 
 STARTTIME=$(date +%s.%N)
 if [ -z "${OUTPUT}" ] && [ -z "${ERROR}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -classpath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH}
+	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH}
 elif [ -z "${OUTPUT}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -classpath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} 2> ${ERROR}
+	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} 2> ${ERROR}
 elif [ -z "${ERROR}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -classpath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT}
+	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT}
 else
-	timeout ${MAXTIME} javac ${VERBOSEARG} -classpath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT} 2> ${ERROR}
+	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT} 2> ${ERROR}
 fi
 EXITVALUE=$?
 ENDTIME=$(date +%s.%N)
