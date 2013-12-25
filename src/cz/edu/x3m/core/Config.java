@@ -50,6 +50,7 @@ public class Config {
     private final List<String> allowedAddresses;
     private String sshUsername;
     private String sshPassword;
+    private String dataDirectory;
 
 
 
@@ -76,7 +77,7 @@ public class Config {
         socketKnockPort = Integer.parseInt (getValue (element, "port"));
         socketMessage = getValue (element, "message");
         tmp = getItems (element, "allow-access-from", false);
-        
+
         allowedAddresses = new ArrayList<> ();
         if (!tmp.isEmpty ()) {
             element = tmp.get (0);
@@ -103,7 +104,8 @@ public class Config {
             sshPassword = getValue (element, "password", false);
         }
 
-
+        //# data directory
+        dataDirectory = getValue (rootNode, "data-directory", true);
     }
 
 
@@ -255,5 +257,11 @@ public class Config {
 
     public String getSocketMessage () {
         return socketMessage;
+    }
+
+
+
+    public String getDataDirectory () {
+        return dataDirectory;
     }
 }

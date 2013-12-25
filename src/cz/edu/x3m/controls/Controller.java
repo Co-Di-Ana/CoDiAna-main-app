@@ -1,25 +1,21 @@
 package cz.edu.x3m.controls;
 
 import cz.edu.x3m.core.Globals;
-import cz.edu.x3m.database.data.AbstractDetailItem;
 import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.TaskItem;
-import cz.edu.x3m.grading.GradingFactory;
-import cz.edu.x3m.grading.GradingSetting;
-import cz.edu.x3m.grading.GradingType;
-import cz.edu.x3m.grading.IGrading;
+import cz.edu.x3m.database.data.types.AttemptStateType;
+import cz.edu.x3m.grading.ISolutionGrading;
 import cz.edu.x3m.grading.SolutionGrading;
 import cz.edu.x3m.grading.SolutionGradingResult;
-import cz.edu.x3m.grading.memory.MemoryGradeSetting;
-import cz.edu.x3m.grading.output.OutputGradeSetting;
-import cz.edu.x3m.grading.time.TimeGradeSetting;
 import cz.edu.x3m.processing.LanguageFactory;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
 import cz.edu.x3m.processing.compilation.ICompileResult;
+import cz.edu.x3m.processing.compilation.impl.CompileSetting;
 import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
 import cz.edu.x3m.processing.execution.IExecutionResult;
+import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
 import java.util.List;
 
 /**
@@ -63,73 +59,127 @@ public class Controller implements IController {
                 // load detail (corresponding attempt)
                 queueItem.loadDetails ();
                 attemptItem = (AttemptItem) queueItem.getDetailItem ();
-                attemptItem.setTask (taskItem);
+                attemptItem.setTaskItem (taskItem);
                 languageExec = LanguageFactory.getInstance (attemptItem.getLanguage ());
 
                 // compile if compilable
                 compilationResult = null;
                 if (languageExec instanceof ICompilableLanguage) {
-                    ((ICompilableLanguage) languageExec).preCompilation ();
-                    compilationResult = ((ICompilableLanguage) languageExec).compile ();
-                    ((ICompilableLanguage) languageExec).postCompilation ();
+                    ((ICompilableLanguage) languageExec).setCompileSettings (CompileSetting.create (queueItem));
+                    compilationResult = compile ((ICompilableLanguage) languageExec);
+
+                    // Programmers error, throws ExtensionException
+                    if (compilationResult == null)
+                        throw new Exception ("Extension error, compilation result cannot be null!");
+
+                    // Interrupted compilation, abort processing
+                    if (compilationResult.isInterrupted ()) {
+                        Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT, null);
+                        return null;
+                    }
+
+                    // Compilation error, abort processing
+                    if (!compilationResult.isSuccessful ()) {
+                        Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_ERROR, compilationResult.getDetails ());
+                        return null;
+                    }
                 }
 
                 // execute if compilation is success or there is no compilation needed
                 executionResult = null;
-                if (compilationResult == null || compilationResult.isSuccessful ()) {
-                    ((IExecutableLanguage) languageExec).preExecution ();
-                    executionResult = ((IExecutableLanguage) languageExec).execute ();
-                    ((IExecutableLanguage) languageExec).postExecution ();
+                languageExec.setExecutionSettings (ExecutionSetting.create (queueItem));
+                executionResult = execute (languageExec);
+
+
+                // Programmers error, throws ExtensionException
+                if (executionResult == null)
+                    throw new Exception ("Extension error, compilation result cannot be null!");
+
+                // Interrupted execution, abort processing
+                if (executionResult.isInterrupted ()) {
+                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_TIMEOUT, null);
+                    return null;
                 }
 
-                // no result from execution means some serious mistake (maybe implementation error)
-                if (executionResult == null)
-                    throw new ExecutionException ("execution fatal error");
+                // Execution error, abort processing
+                if (!executionResult.isSuccessful ()) {
+                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_ERROR, executionResult.getDetails ());
+                    return null;
+                } else {
+                    queueItem.setExecutionResult (executionResult);
 
-                // if execution is successful, store them in DB and delete queue item from queue
-                if (executionResult.isSuccessful ()) {
-                    
+
                     // solution check will grade solution
                     if (queueItem.getType () == QueueItem.QueueType.TYPE_SOLUTION_CHECK) {
-                        SolutionGrading solutionGrading = new SolutionGrading ();
-                        IGrading grading;
-                        GradingSetting setting;
+                        ISolutionGrading solutionGrading = new SolutionGrading ();
 
-                        // add time grading
-                        grading = GradingFactory.getInstance (GradingType.TIME, GradingFactory.TYPE_TIME_THRESHOLD);
-                        setting = new TimeGradeSetting (true, taskItem.getLimitTimeFalling (), taskItem.getLimitTimeNothing ());
-                        grading.setSettings (setting);
-                        solutionGrading.addGrading (grading);
-
-                        // add memory grading
-                        grading = GradingFactory.getInstance (GradingType.MEMORY, GradingFactory.TYPE_MEMORY_THRESHOLD);
-                        setting = new MemoryGradeSetting (true, taskItem.getLimitMemoryFalling (), taskItem.getLimitMemoryNothing ());
-                        grading.setSettings (setting);
-                        solutionGrading.addGrading (grading);
-
-                        // add output grading
-                        grading = GradingFactory.getInstance (GradingType.OUTPUT, taskItem.getOutputMethod ().value ());
-                        setting = new OutputGradeSetting (true, taskItem.getOutputFile (), attemptItem.getOutputFile ());
-                        grading.setSettings (setting);
-                        solutionGrading.addGrading (grading);
+                        // add monitors
+                        solutionGrading.setQueueItem (queueItem);
+                        solutionGrading.addMonitors ();
 
                         // grade task
                         Globals.getDatabase ().saveGradingResult (queueItem, (SolutionGradingResult) solutionGrading.grade ());
-                        Globals.getDatabase ().deleteItem (queueItem);
+//                        Globals.getDatabase ().deleteQueueItem (queueItem);
+                        System.out.format ("TYPE_SOLUTION_CHECK from %s %n", attemptItem.getFullname ());
                     }
-                    
+
                     // when measuring values, thresholds are unkwnown and they need to recorded
                     if (queueItem.getType () == QueueItem.QueueType.TYPE_MEASURE_VALUES) {
                         Globals.getDatabase ().saveMeasurementResult (taskItem, executionResult);
-                        Globals.getDatabase ().deleteItem (queueItem);
+//                        Globals.getDatabase ().deleteQueueItem (queueItem);
+//                        Globals.getDatabase ().deleteAttemptItem (queueItem);
+                        // TODO save results to attempt or delete attempt or set flag that it is a measure type
+                        System.out.format ("TYPE_MEASURE_VALUES from %s %n", attemptItem.getFullname ());
                     }
                 }
             }
 
             if (queueItem.getType () == QueueItem.QueueType.TYPE_PLAGIARISM_CHECK) {
-                // TODO do it
+                // TODO do it too
             }
         }
         return null;
+    }
+
+
+
+    private ICompileResult compile (ICompilableLanguage compilableLanguage) {
+        ICompileResult primaryResult;
+        ICompileResult secondaryResult;
+
+        secondaryResult = compilableLanguage.preCompilation ();
+        if (secondaryResult != null && !secondaryResult.isSuccessful ())
+            return secondaryResult;
+
+        primaryResult = compilableLanguage.compile ();
+        if (primaryResult != null && !primaryResult.isSuccessful ())
+            return primaryResult;
+
+        secondaryResult = compilableLanguage.postCompilation ();
+        if (secondaryResult != null && !secondaryResult.isSuccessful ())
+            return secondaryResult;
+
+        return primaryResult;
+    }
+
+
+
+    private IExecutionResult execute (IExecutableLanguage executableLanguage) {
+        IExecutionResult primaryResult;
+        IExecutionResult secondaryResult;
+
+        secondaryResult = executableLanguage.preExecution ();
+        if (secondaryResult != null && !secondaryResult.isSuccessful ())
+            return secondaryResult;
+
+        primaryResult = executableLanguage.execute ();
+        if (primaryResult != null && !primaryResult.isSuccessful ())
+            return primaryResult;
+
+        secondaryResult = executableLanguage.postExecution ();
+        if (secondaryResult != null && !secondaryResult.isSuccessful ())
+            return secondaryResult;
+
+        return primaryResult;
     }
 }

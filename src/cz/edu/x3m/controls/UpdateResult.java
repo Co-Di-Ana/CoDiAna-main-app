@@ -7,7 +7,7 @@ public class UpdateResult {
 
 
 
-    UpdateResult (UpdateResultType updateResultType) {
+    public UpdateResult (UpdateResultType updateResultType) {
         throw new UnsupportedOperationException ("Not supported yet.");
     }
 
