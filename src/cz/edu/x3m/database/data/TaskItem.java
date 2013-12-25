@@ -1,5 +1,6 @@
 package cz.edu.x3m.database.data;
 
+import cz.edu.x3m.database.data.types.GradeMethodType;
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,12 +14,16 @@ public class TaskItem {
     private final int id;
     private final String name;
     private final String mainFileName;
-    private final OutputMethodType outputMethod;
+    private final GradeMethodType outputMethod;
+    private final GradeMethodType timeMethod;
+    private final GradeMethodType memoryMethod;
     private final String[] languages;
     private final int limitMemoryFalling;
     private final int limitMemoryNothing;
     private final int limitTimeFalling;
     private final int limitTimeNothing;
+    private final GradeMode gradeMode;
+    private static final int NOT_SUPPORTED_YET = -1;
 
 
 
@@ -28,7 +33,9 @@ public class TaskItem {
         id = row.getInt ("taskid");
         name = row.getString ("taskname");
         mainFileName = row.getString ("taskmainfilename");
-        outputMethod = OutputMethodType.getByValue (row.getInt ("taskoutputmethod"));
+        outputMethod = GradeMethodType.getByOutputValue (row.getInt ("taskoutputmethod"));
+        timeMethod = GradeMethodType.getByTimeValue (NOT_SUPPORTED_YET);
+        memoryMethod = GradeMethodType.getByMemoryValue (NOT_SUPPORTED_YET);
         languages = getArray (row.getString ("tasklanguages"));
 
         // limits
@@ -36,6 +43,8 @@ public class TaskItem {
         limitTimeNothing = row.getInt ("tasklimittimenothing");
         limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
         limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
+        //
+        gradeMode = GradeMode.create(row.getInt("grademode"));
     }
 
 
@@ -143,40 +152,30 @@ public class TaskItem {
     /**
      * @return the outputMethod
      */
-    public OutputMethodType getOutputMethod () {
+    public GradeMethodType getOutputMethod () {
         return outputMethod;
     }
 
-    public static enum OutputMethodType {
-
-        STRICT ("strict"), TOLERANT ("tolerant"), VAGUE ("vague"), UNKNOWN ("unknown");
-        private final String value;
 
 
-
-        private OutputMethodType (String value) {
-            this.value = value;
-        }
-
-
-
-        public String value () {
-            return value;
-        }
-
-
-
-        public static OutputMethodType getByValue (int value) {
-            switch (value) {
-                case 0:
-                    return STRICT;
-                case 1:
-                    return TOLERANT;
-                case 2:
-                    return VAGUE;
-                default:
-                    return UNKNOWN;
-            }
-        }
+    public GradeMethodType getTimeMethod () {
+        return timeMethod;
     }
+
+
+
+    public GradeMethodType getMemoryMethod () {
+        return memoryMethod;
+    }
+
+
+
+    /**
+     * @return the gradeMode
+     */
+    public GradeMode getGradeMode () {
+        return gradeMode;
+    }
+    
+    
 }

@@ -1,6 +1,8 @@
 package cz.edu.x3m.database.data;
 
-import java.io.File;
+import cz.edu.x3m.database.data.types.AttemptStateType;
+import cz.edu.x3m.processing.compilation.ICompileResult;
+import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -12,7 +14,7 @@ public class AttemptItem extends AbstractDetailItem {
 
     private int id;
     private int ordinal;
-    private int state;
+    private AttemptStateType state;
     private String language;
     private String firstname;
     private String lastname;
@@ -21,11 +23,11 @@ public class AttemptItem extends AbstractDetailItem {
 
 
 
-    public AttemptItem (int taskID, int relatedID, ResultSet row) throws SQLException {
+    public AttemptItem (int taskID, int relatedID, ResultSet row) throws SQLException, Exception {
         super (taskID, relatedID);
         id = row.getInt ("id");
         ordinal = row.getInt ("ordinal");
-        state = row.getInt ("state");
+        state = AttemptStateType.create (row.getInt ("state"));
         language = row.getString ("language");
         firstname = row.getString ("firstname");
         lastname = row.getString ("lastname");
@@ -55,7 +57,7 @@ public class AttemptItem extends AbstractDetailItem {
     /**
      * @return the attempt state
      */
-    public int getState () {
+    public AttemptStateType getState () {
         return state;
     }
 
@@ -106,30 +108,30 @@ public class AttemptItem extends AbstractDetailItem {
 
 
 
-    private File getFile (String extension) {
-        return new File (
-                String.format ("./%s/%s/curr/%s.%s",
-                               String.format ("task-%04d", id),
-                               String.format ("user-%05d", id),
-                               taskItem.getMainFileName (),
-                               extension));
-    }
-
-
-
-    public File getOutputFile () {
-        return getFile ("out");
-    }
-
-
-
-    public File getErrorFile () {
-        return getFile ("err");
-    }
-
-
-
-    public void setTask (TaskItem taskItem) {
+    /**
+     *
+     * @param taskItem
+     */
+    public void setTaskItem (TaskItem taskItem) {
         this.taskItem = taskItem;
+    }
+
+
+
+    /**
+     * @return the taskItem
+     */
+    public TaskItem getTaskItem () {
+        return taskItem;
+    }
+
+
+
+    public void setCompilationError (ICompileResult result) {
+    }
+
+
+
+    public void setExecutionError (IExecutionResult result) {
     }
 }
