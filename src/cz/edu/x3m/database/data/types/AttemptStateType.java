@@ -16,7 +16,7 @@ public enum AttemptStateType {
     /**
      * Processing has been aborted
      */
-    PROCESS_ABORTED (12),
+    PROCESS_ABORTED (99),
     /**
      * Waiting in queue for processing
      */
@@ -35,57 +35,57 @@ public enum AttemptStateType {
     /**
      * Source code is valid and can be processed
      */
-    CODE_VALID (3),
+    CODE_VALID (4),
     // ---------------------------------------------------------------------------------------------
     // ------- COMPILATION STATES ------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------
     /**
      * Error during compilation
      */
-    COMPILATION_ERROR (4),
+    COMPILATION_ERROR (5),
     /**
      * Compilation was not completed in time, usually broken code
      */
-    COMPILATION_TIMEOUT (5),
+    COMPILATION_TIMEOUT (6),
     /**
      * Compilation was successful
      */
-    COMPILATION_OK (5),
+    COMPILATION_OK (7),
     // ---------------------------------------------------------------------------------------------
     // ------- RUN STATES --------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------
     /**
      * Error during execution
      */
-    EXECUTION_ERROR (6),
+    EXECUTION_ERROR (8),
     /**
      * Execution was not completed in time and was be terminated
      */
-    EXECUTION_TIMEOUT (7),
+    EXECUTION_TIMEOUT (9),
     /**
      * Execution was successful
      */
-    EXECUTION_OK (8),
+    EXECUTION_OK (10),
     // ---------------------------------------------------------------------------------------------
     // ------- MEASURE STATES ----------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------
     /**
      * Task required output to be correct and it was not correct
      */
-    OUTPUT_ERROR (9),
+    OUTPUT_ERROR (11),
     /**
      * Task required execution time to be lower than some threshold and it took longer to execute
      */
-    TIME_ERROR (10),
+    TIME_ERROR (12),
     /**
      * Task required execution memory peak to be lower than some threshold and it memory peak was
      * overstepped
      */
-    MEMORY_ERROR (11),
+    MEMORY_ERROR (13),
     /**
      * Measurement was successful
      */
-    MEASUREMENT_OK (11);
+    MEASUREMENT_OK (14);
     //
     // ---------------------------------------------------------------------------------------------
     //
