@@ -1,6 +1,7 @@
 #!/bin/bash
 
-usage () {
+
+function usage () {
 	echo "Usage: $0 -c <path> -s <path> -d <path> [ <options> ]" 1>&2;
 	echo "  -c <path>           classpath, where solution structure begins, source files ale located" 1>&2;
 	echo "  -s <path>           startpath, main file path (start file with static main method, e.g. java file)" 1>&2;
@@ -15,11 +16,66 @@ usage () {
 	exit 1;
 }
 
+function getMemory () {
+	Info=$(pmap $PID -x 2> /dev/null | tail -n 1)
+	if [ -n "$Info" ]; then
+		InfoArray=($Info)
+		echo ${InfoArray[3]}
+	else
+		echo -1
+	fi
+}
 
-# default max time
+function measureMemory () {
+	CURRENTMEMORY=1
+	TOTALMEMORY=0
+	TOTALTICKS=0
+	while [ "$CURRENTMEMORY" -ge "0" ]
+	do
+		# get memory in bytes 
+		CURRENTMEMORY=$(getMemory $PID)
+
+		if [ "$CURRENTMEMORY" -ne "0" ]; then
+			# increment total ticks
+			TOTALTICKS=$(($TOTALTICKS+1))
+
+			# add current memory value
+			TOTALMEMORY=`echo "scale=9;($TOTALMEMORY+$CURRENTMEMORY/1024)" | bc`
+		fi
+#		echo $CURRENTMEMORY
+		sleep 0.05
+	done
+
+	TOTALMEMORY=`echo "scale=0;($TOTALMEMORY*1024)/$TOTALTICKS" | bc`
+	echo $TOTALMEMORY > $1
+}
+
+function limitTime () {
+	(sleep $MAXTIME && kill $PID) 2>/dev/null & WATCHER=$!
+	if wait $PID 2>/dev/null; then
+		EXITVALUE=$?
+	else
+		EXITVALUE=124
+	fi
+	kill $WATCHER 2>/dev/null
+	sleep 0.5
+}
+
+function getDuration () {
+	DURATION=`echo "scale=0;((${ENDTIME}-${STARTTIME})*1000)/1" | bc`
+}
+
+
+#--------------------------------------------------------------------
+
+# defaults
 MAXTIME=60
 MAXMEORY=100
+VERBOSE=0
 VERBOSEARG=''
+EXITVALUE=-1
+OUTPUT=/dev/null
+ERROR=/dev/null
 
 
 while getopts ":c:s:d:t:m:o:e:hv" o; do
@@ -37,7 +93,7 @@ while getopts ":c:s:d:t:m:o:e:hv" o; do
             DESTINATION=${OPTARG}
             ;;
         t)
-			# maximum time
+			# maximum timelimitTime
             MAXTIME=${OPTARG}
 			;;
         m)
@@ -78,7 +134,7 @@ if [[ $VERBOSE -eq 1 ]]; then
 	echo "STARTPATH   = ${STARTPATH}"
 	echo "DESTINATION = ${DESTINATION}"
 	echo "MAXTIME     = ${MAXTIME}"
-	echo "MAXMEORY     = ${MAXMEORY}"
+	echo "MAXMEORY    = ${MAXMEORY}"
 	echo "OUTPUT      = ${OUTPUT}"
 	echo "ERROR       = ${ERROR}"
 fi
@@ -89,26 +145,45 @@ if [ -z "${CLASSPATH}" ] || [ -z "${STARTPATH}" ] || [ -z "${DESTINATION}" ]; th
 fi
 
 
+#------------------------------------------------------------------
+
+
+EXITVALUE=-1
+MEMORYFILE=$(mktemp)
+chmod 777 $MEMORYFILE
 STARTTIME=$(date +%s.%N)
-if [ -z "${OUTPUT}" ] && [ -z "${ERROR}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH}
-elif [ -z "${OUTPUT}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} 2> ${ERROR}
-elif [ -z "${ERROR}" ]; then
-	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT}
-else
-	timeout ${MAXTIME} javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT} 2> ${ERROR}
-fi
-EXITVALUE=$?
+
+	# start javac and get PID
+	javac ${VERBOSEARG} -sourcepath ${CLASSPATH} -d ${DESTINATION} ${STARTPATH} > ${OUTPUT} 2> ${ERROR} & PID=$!
+
+	# attach async measurements
+	( measureMemory $MEMORYFILE ) & MP=$!
+
+	# wait to finish
+		(sleep $MAXTIME && kill $PID) 2>/dev/null & WATCHER=$!
+		if wait $PID 2>/dev/null; then
+			EXITVALUE=$?
+		else
+			EXITVALUE=124
+		fi
+		kill $WATCHER 2>/dev/null
+
+	# retrieve results from files
+	wait $MP
+	TOTALMEMORY=$(cat $MEMORYFILE)
+
+	#wait PP
+	#CPU=$(cat $MEMORYFILE)
+
 ENDTIME=$(date +%s.%N)
 
+# get run time
+getDuration
 
-DIFF=$(echo "${ENDTIME} - ${STARTTIME}" | bc)
-echo "time=${DIFF}"
-echo "memory=${MEMORY}"
-echo "exit=${EXITVALUE}";
+
+echo "run-time=${DURATION}"
+echo "memory-peak=${TOTALMEMORY}"
+echo "exit-value=${EXITVALUE}";
 exit ${EXITVALUE};
-
-#./java-compile.sh -c /home/hans/NetBeansProjects/DPTest02/src/ -s /home/hans/NetBeansProjects/DPTest02/src/cz/edu/x3m/test/Main.java -d /home/hans/NetBeansProjects/d/ -m 5 -o /home/hans/NetBeansProjects/d/o.txt -e /home/hans/NetBeansProjects/d/e.txt
 
 

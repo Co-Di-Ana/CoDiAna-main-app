@@ -23,11 +23,11 @@ public class TaskItem {
     private final int limitTimeFalling;
     private final int limitTimeNothing;
     private final GradeMode gradeMode;
-    private static final int NOT_SUPPORTED_YET = -1;
+    public static final int NOT_SUPPORTED_YET = -1;
 
 
 
-    public TaskItem (ResultSet row) throws SQLException {
+    public TaskItem (ResultSet row) throws SQLException, InvalidArgument {
 
         // basic informations
         id = row.getInt ("taskid");
@@ -44,7 +44,8 @@ public class TaskItem {
         limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
         limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
         //
-        gradeMode = GradeMode.create(row.getInt("grademode"));
+        //gradeMode = GradeMode.create(row.getInt("grademode"));
+        gradeMode = GradeMode.PRECISE;
     }
 
 

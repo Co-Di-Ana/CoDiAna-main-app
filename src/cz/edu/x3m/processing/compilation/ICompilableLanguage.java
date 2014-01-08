@@ -12,7 +12,7 @@ public interface ICompilableLanguage extends IExecutableLanguage {
 
 
 
-    ICompileResult preCompilation ();
+    void preCompilation () throws Exception;
 
 
 
@@ -20,5 +20,5 @@ public interface ICompilableLanguage extends IExecutableLanguage {
 
 
 
-    ICompileResult postCompilation ();
+    void postCompilation () throws Exception;
 }

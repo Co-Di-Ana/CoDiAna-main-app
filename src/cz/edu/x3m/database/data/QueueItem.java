@@ -1,10 +1,14 @@
 package cz.edu.x3m.database.data;
 
+
 import cz.edu.x3m.core.Globals;
+import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+
 
 /**
  * @author Jan Hybs
@@ -13,7 +17,7 @@ public class QueueItem {
 
     private final TaskItem taskItem;
     private AbstractDetailItem detailItem;
-    private final QueueType type;
+    private final QueueItemType type;
     private final int id;
     private final int userID;
     private final int taskID;
@@ -22,22 +26,20 @@ public class QueueItem {
     private IExecutionResult executionResult;
 
 
-
-    public QueueItem (ResultSet row) throws SQLException, DatabaseException {
+    public QueueItem (ResultSet row) throws SQLException, DatabaseException, InvalidArgument {
         taskItem = new TaskItem (row);
         id = row.getInt ("id");
         taskID = row.getInt ("taskid");
         userID = row.getInt ("userid");
         attemptID = row.getInt ("attemptid");
-        type = QueueType.getByValue (row.getInt ("type"));
+        type = QueueItemType.create (row.getInt ("type"));
         priority = row.getInt ("priority");
 
 
         //# unsupported type
-        if (type == QueueType.TYPE_UNKNOWN)
+        if (type == QueueItemType.TYPE_UNKNOWN)
             throw new DatabaseException ("Unknown queue item type");
     }
-
 
 
     public void loadDetails () throws DatabaseException {
@@ -57,14 +59,12 @@ public class QueueItem {
     }
 
 
-
     /**
      * @return the task item
      */
     public TaskItem getTaskItem () {
         return taskItem;
     }
-
 
 
     /**
@@ -75,14 +75,12 @@ public class QueueItem {
     }
 
 
-
     /**
      * @return the type of queue (solution/plagiarism)
      */
-    public QueueType getType () {
+    public QueueItemType getType () {
         return type;
     }
-
 
 
     /**
@@ -93,14 +91,12 @@ public class QueueItem {
     }
 
 
-
     /**
      * @return the user ID
      */
     public int getUserID () {
         return userID;
     }
-
 
 
     /**
@@ -111,7 +107,6 @@ public class QueueItem {
     }
 
 
-
     /**
      * @return the attempt ID if exists or 0 if not
      */
@@ -120,35 +115,11 @@ public class QueueItem {
     }
 
 
-
     /**
      * @return the priority in queue
      */
     public int getPriority () {
         return priority;
-    }
-
-    public static enum QueueType {
-
-        TYPE_SOLUTION_CHECK,
-        TYPE_PLAGIARISM_CHECK,
-        TYPE_MEASURE_VALUES,
-        TYPE_UNKNOWN;
-
-
-
-        public static QueueType getByValue (int value) {
-            switch (value) {
-                case 1:
-                    return TYPE_SOLUTION_CHECK;
-                case 2:
-                    return TYPE_MEASURE_VALUES;
-                case 3:
-                    return TYPE_PLAGIARISM_CHECK;
-                default:
-                    return TYPE_UNKNOWN;
-            }
-        }
     }
 
 
@@ -159,7 +130,6 @@ public class QueueItem {
     public IExecutionResult getExecutionResult () {
         return executionResult;
     }
-
 
 
     /**

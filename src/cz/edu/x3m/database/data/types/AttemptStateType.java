@@ -1,5 +1,10 @@
 package cz.edu.x3m.database.data.types;
 
+
+import cz.edu.x3m.database.data.InvalidArgument;
+
+
+
 /**
  *
  * @author Jan Hybs <x3mSpeedy@gmail.com>
@@ -104,13 +109,13 @@ public enum AttemptStateType {
      *
      * @param value unique code
      * @return AttemptStateType or throws Exception if unique id is not found
-     * @throws Exception if unique id is not found
+     * @throws InvalidArgument if unique id is not found
      */
-    public static AttemptStateType create (int value) throws Exception {
+    public static AttemptStateType create (int value) throws InvalidArgument {
         for (AttemptStateType taskState : values ())
             if (taskState.value == value)
                 return taskState;
-        throw new Exception ("Invalid state type");
+        throw new InvalidArgument ("Invalid state type");
     }
 
 

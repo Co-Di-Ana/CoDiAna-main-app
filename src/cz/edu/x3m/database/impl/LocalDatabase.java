@@ -6,6 +6,7 @@ import cz.edu.x3m.database.DatabaseSetting;
 import cz.edu.x3m.database.data.PlagiarismCheckItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.InvalidArgument;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
@@ -121,7 +122,7 @@ public class LocalDatabase extends AbstractDatabase {
 
             return result;
 
-        } catch (SQLException | DatabaseException e) {
+        } catch (SQLException | DatabaseException | InvalidArgument e) {
             throw new DatabaseException (e);
         }
     }

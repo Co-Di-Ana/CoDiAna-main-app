@@ -8,7 +8,7 @@ public class UpdateResult {
 
 
     public UpdateResult (UpdateResultType updateResultType) {
-        throw new UnsupportedOperationException ("Not supported yet.");
+//        throw new UnsupportedOperationException ("Not supported yet.");
     }
 
 }

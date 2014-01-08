@@ -1,10 +1,12 @@
 package cz.edu.x3m.controls;
 
+
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
+import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.grading.ISolutionGrading;
 import cz.edu.x3m.grading.SolutionGrading;
 import cz.edu.x3m.grading.SolutionGradingResult;
@@ -12,11 +14,12 @@ import cz.edu.x3m.processing.LanguageFactory;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
 import cz.edu.x3m.processing.compilation.ICompileResult;
 import cz.edu.x3m.processing.compilation.impl.CompileSetting;
-import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
 import java.util.List;
+
+
 
 /**
  *
@@ -25,7 +28,6 @@ import java.util.List;
 public class Controller implements IController {
 
     private static IController instance;
-
 
 
     public static IController getInstance () {
@@ -37,7 +39,6 @@ public class Controller implements IController {
     private QueueItem queueItem;
     private IExecutableLanguage languageExec;
     private TaskItem taskItem;
-
 
 
     @Override
@@ -53,8 +54,8 @@ public class Controller implements IController {
             queueItem = items.get (i);
             taskItem = queueItem.getTaskItem ();
 
-            if (queueItem.getType () == QueueItem.QueueType.TYPE_SOLUTION_CHECK
-                    || queueItem.getType () == QueueItem.QueueType.TYPE_MEASURE_VALUES) {
+            if (queueItem.getType () == QueueItemType.TYPE_SOLUTION_CHECK
+                    || queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES) {
 
                 // load detail (corresponding attempt)
                 queueItem.loadDetails ();
@@ -110,7 +111,7 @@ public class Controller implements IController {
 
 
                     // solution check will grade solution
-                    if (queueItem.getType () == QueueItem.QueueType.TYPE_SOLUTION_CHECK) {
+                    if (queueItem.getType () == QueueItemType.TYPE_SOLUTION_CHECK) {
                         ISolutionGrading solutionGrading = new SolutionGrading ();
 
                         // add monitors
@@ -119,22 +120,24 @@ public class Controller implements IController {
 
                         // grade task
                         Globals.getDatabase ().saveGradingResult (queueItem, (SolutionGradingResult) solutionGrading.grade ());
-//                        Globals.getDatabase ().deleteQueueItem (queueItem);
+                        Globals.getDatabase ().deleteQueueItem (queueItem);
                         System.out.format ("TYPE_SOLUTION_CHECK from %s %n", attemptItem.getFullname ());
                     }
 
                     // when measuring values, thresholds are unkwnown and they need to recorded
-                    if (queueItem.getType () == QueueItem.QueueType.TYPE_MEASURE_VALUES) {
+                    if (queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES) {
                         Globals.getDatabase ().saveMeasurementResult (taskItem, executionResult);
-//                        Globals.getDatabase ().deleteQueueItem (queueItem);
-//                        Globals.getDatabase ().deleteAttemptItem (queueItem);
+                        Globals.getDatabase ().deleteQueueItem (queueItem);
+                        Globals.getDatabase ().deleteAttemptItem (queueItem);
                         // TODO save results to attempt or delete attempt or set flag that it is a measure type
                         System.out.format ("TYPE_MEASURE_VALUES from %s %n", attemptItem.getFullname ());
+                        System.out.println (executionResult.getMemoryPeak ());
+                        System.out.println (executionResult.getRunTime ());
                     }
                 }
             }
 
-            if (queueItem.getType () == QueueItem.QueueType.TYPE_PLAGIARISM_CHECK) {
+            if (queueItem.getType () == QueueItemType.TYPE_PLAGIARISM_CHECK) {
                 // TODO do it too
             }
         }
@@ -142,44 +145,32 @@ public class Controller implements IController {
     }
 
 
+    private ICompileResult compile (ICompilableLanguage compilableLanguage) throws Exception {
+        ICompileResult result;
 
-    private ICompileResult compile (ICompilableLanguage compilableLanguage) {
-        ICompileResult primaryResult;
-        ICompileResult secondaryResult;
+        compilableLanguage.preCompilation ();
 
-        secondaryResult = compilableLanguage.preCompilation ();
-        if (secondaryResult != null && !secondaryResult.isSuccessful ())
-            return secondaryResult;
+        result = compilableLanguage.compile ();
+        if (result != null && !result.isSuccessful ())
+            return result;
 
-        primaryResult = compilableLanguage.compile ();
-        if (primaryResult != null && !primaryResult.isSuccessful ())
-            return primaryResult;
+        compilableLanguage.postCompilation ();
 
-        secondaryResult = compilableLanguage.postCompilation ();
-        if (secondaryResult != null && !secondaryResult.isSuccessful ())
-            return secondaryResult;
-
-        return primaryResult;
+        return result;
     }
 
 
+    private IExecutionResult execute (IExecutableLanguage executableLanguage) throws Exception {
+        IExecutionResult result;
 
-    private IExecutionResult execute (IExecutableLanguage executableLanguage) {
-        IExecutionResult primaryResult;
-        IExecutionResult secondaryResult;
+        executableLanguage.preExecution ();
 
-        secondaryResult = executableLanguage.preExecution ();
-        if (secondaryResult != null && !secondaryResult.isSuccessful ())
-            return secondaryResult;
+        result = executableLanguage.execute ();
+        if (result != null && !result.isSuccessful ())
+            return result;
 
-        primaryResult = executableLanguage.execute ();
-        if (primaryResult != null && !primaryResult.isSuccessful ())
-            return primaryResult;
+        executableLanguage.postExecution ();
 
-        secondaryResult = executableLanguage.postExecution ();
-        if (secondaryResult != null && !secondaryResult.isSuccessful ())
-            return secondaryResult;
-
-        return primaryResult;
+        return result;
     }
 }

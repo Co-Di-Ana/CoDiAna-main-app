@@ -2,7 +2,7 @@ package cz.edu.x3m.processing.execution;
 
 /**
  *
- *  @author Jan Hybs
+ * @author Jan Hybs
  */
 public interface IExecutableLanguage {
 
@@ -10,7 +10,7 @@ public interface IExecutableLanguage {
 
 
 
-    IExecutionResult preExecution ();
+    void preExecution () throws Exception;
 
 
 
@@ -18,5 +18,5 @@ public interface IExecutableLanguage {
 
 
 
-    IExecutionResult postExecution ();
+    void postExecution () throws Exception;
 }

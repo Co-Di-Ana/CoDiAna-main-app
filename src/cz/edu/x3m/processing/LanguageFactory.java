@@ -35,7 +35,7 @@ public class LanguageFactory {
             return;
 
         loader = new JarLoader (LanguageFactory.class.getClassLoader ());
-        loader.add ("c:\\Users\\Jan\\Documents\\NetBeansProjects\\LanguageJava\\dist\\");
+        loader.add ("/home/hans/NetBeansProjects/LanguageJava/dist/");
 //        loader.add ("libs/lang/");
 //        loader.add ("lib/lang/");
 
