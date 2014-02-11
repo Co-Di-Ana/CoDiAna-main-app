@@ -225,10 +225,10 @@ public class LocalDatabase extends AbstractDatabase {
                     "SET                                    ",
                     "    runtime = ?,                       ",
                     "    runoutput = ?,                     ",
-                    //"    runmemory = ?,                   ",
+                    "    runmemory = ?,                     ",
                     "    resulttime = ?,                    ",
                     "    resultoutput = ?,                  ",
-                    //"    resultmemory = ?,                ",
+                    "    resultmemory = ?,                  ",
                     "    resultfinal = ?,                   ",
                     "    resultnote = ?,                    ",
                     "    state = ?                          ",
@@ -243,11 +243,11 @@ public class LocalDatabase extends AbstractDatabase {
 
             statement.setInt (i++, result.getTimeGradeResult ().getRunTime ());
             statement.setInt (i++, result.getOutputGradeResult ().getCorrectLines ());
-            //statement.setInt (i++, result.getMemoryGradeResult ().getMemoryPeak ());
+            statement.setInt (i++, result.getMemoryGradeResult ().getMemoryPeak ());
 
             statement.setInt (i++, result.getTimeGradeResult ().getPercent ());
             statement.setInt (i++, result.getOutputGradeResult ().getPercent ());
-            //statement.setInt (i++, result.getMemoryGradeResult ().getPercent ());
+            statement.setInt (i++, result.getMemoryGradeResult ().getPercent ());
 
             statement.setInt (i++, result.getPercent ());
             statement.setNull (i++, Types.VARCHAR);
@@ -339,6 +339,58 @@ public class LocalDatabase extends AbstractDatabase {
 
             statement.setInt (i++, 1);
             statement.setInt (i++, queueItem.getAttemptID ());
+
+            return statement.executeUpdate () == 1;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
+    }
+
+
+
+    @Override
+    public boolean saveGradingResult (AttemptItem item, IExecutionResult result) throws DatabaseException {
+        try {
+            String sql = Strings.createAndReplace (
+                    "UPDATE                                 ",
+                    "       ::codiana_attempt               ",
+                    "SET                                    ",
+                    "    runtime = ?,                       ",
+                    "    runoutput = ?,                     ",
+                    "    runmemory = ?,                     ",
+                    //
+                    "    resulttime = ?,                    ",
+                    "    resultoutput = ?,                  ",
+                    "    resultmemory = ?,                  ",
+                    "    resultfinal = ?,                   ",
+                    //
+                    "    resultnote = ?,                    ",
+                    "    state = ?,                         ",
+                    "    orginal = ?                        ",
+                    "                                       ",
+                    "WHERE (                                ",
+                    "    id = ?                             ",
+                    ")                                      ",
+                    "LIMIT 1                                ");
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            int i = 1;
+
+
+            statement.setInt (i++, result.getRunTime ());
+            statement.setInt (i++, result.getLineCount ());
+            statement.setInt (i++, result.getMemoryPeak ());
+
+            statement.setInt (i++, 100);
+            statement.setInt (i++, 100);
+            statement.setInt (i++, 100);
+            statement.setInt (i++, 100);
+
+            statement.setString (i++, "Values measurement");
+            statement.setInt (i++, AttemptStateType.EXECUTION_OK.value ());
+
+            statement.setInt (i++, -1);
+            statement.setInt (i++, item.getId ());
 
             return statement.executeUpdate () == 1;
         } catch (Exception e) {

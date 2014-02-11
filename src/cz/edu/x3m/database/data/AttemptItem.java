@@ -37,7 +37,7 @@ public class AttemptItem extends AbstractDetailItem {
 
 
     /**
-     * @return the unique rown attempt id
+     * @return the unique row attempt id
      */
     public int getId () {
         return id;

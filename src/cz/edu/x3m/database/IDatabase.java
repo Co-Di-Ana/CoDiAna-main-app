@@ -64,6 +64,9 @@ public interface IDatabase {
      * @param item to be deleted
      * @return true if deletion was successful otherwise false
      * @throws DatabaseException on error
+     * @deprecated every attempt should be preserved using one of theese methods  <br />
+     * {@link #saveGradingResult(AttemptItem, IExecutionResult) } <br />
+     * {@link #saveGradingResult(QueueItem, AttemptStateType, String)  }
      */
     boolean deleteAttemptItem (QueueItem item) throws DatabaseException;
 
@@ -94,7 +97,7 @@ public interface IDatabase {
 
 
     /**
-     * Saves grading result to DB
+     * Saves grading result to DB from given solution grading result (from monitors results)
      *
      * @param item to be updated
      * @param result grading result
@@ -102,6 +105,18 @@ public interface IDatabase {
      * @throws DatabaseException on error
      */
     boolean saveGradingResult (QueueItem item, ISolutionGradingResult result) throws DatabaseException;
+
+
+
+    /**
+     * Saves grading result to DB from given execution result (from monitors results)
+     *
+     * @param item to be updated
+     * @param result execution result
+     * @return true on success false on update
+     * @throws DatabaseException on error
+     */
+    boolean saveGradingResult (AttemptItem item, IExecutionResult result) throws DatabaseException;
 
 
 
@@ -139,5 +154,14 @@ public interface IDatabase {
 
 
 
+    /**
+     * Method sets given state to given queue item, along with optional string note
+     *
+     * @param queueItem queue item object
+     * @param state new state which will be set
+     * @param details null or string value, serves as note
+     * @return true on success false otherwise
+     * @throws DatabaseException when sql error occurs
+     */
     boolean saveGradingResult (QueueItem queueItem, AttemptStateType state, String details) throws DatabaseException;
 }

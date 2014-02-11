@@ -52,4 +52,10 @@ public interface IExecutionResult {
      * Method return execution memory peak in MB or -1 on error
      */
     int getMemoryPeak ();
+
+
+    /**
+     * Method returns output line count or -1 on error
+     */
+    int getLineCount ();
 }
