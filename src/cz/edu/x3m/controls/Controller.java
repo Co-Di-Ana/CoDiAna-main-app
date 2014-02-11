@@ -1,15 +1,16 @@
 package cz.edu.x3m.controls;
 
-
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.AttemptItem;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.data.types.QueueItemType;
+import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.ISolutionGrading;
 import cz.edu.x3m.grading.SolutionGrading;
 import cz.edu.x3m.grading.SolutionGradingResult;
+import cz.edu.x3m.grading.exception.GradingException;
 import cz.edu.x3m.processing.LanguageFactory;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
 import cz.edu.x3m.processing.compilation.ICompileResult;
@@ -19,8 +20,6 @@ import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
 import java.util.List;
 
-
-
 /**
  *
  * @author Jan Hybs <x3mSpeedy@gmail.com>
@@ -28,6 +27,7 @@ import java.util.List;
 public class Controller implements IController {
 
     private static IController instance;
+
 
 
     public static IController getInstance () {
@@ -39,6 +39,7 @@ public class Controller implements IController {
     private QueueItem queueItem;
     private IExecutableLanguage languageExec;
     private TaskItem taskItem;
+
 
 
     @Override
@@ -109,31 +110,13 @@ public class Controller implements IController {
                 } else {
                     queueItem.setExecutionResult (executionResult);
 
-
                     // solution check will grade solution
-                    if (queueItem.getType () == QueueItemType.TYPE_SOLUTION_CHECK) {
-                        ISolutionGrading solutionGrading = new SolutionGrading ();
-
-                        // add monitors
-                        solutionGrading.setQueueItem (queueItem);
-                        solutionGrading.addMonitors ();
-
-                        // grade task
-                        Globals.getDatabase ().saveGradingResult (queueItem, (SolutionGradingResult) solutionGrading.grade ());
-                        Globals.getDatabase ().deleteQueueItem (queueItem);
-                        System.out.format ("TYPE_SOLUTION_CHECK from %s %n", attemptItem.getFullname ());
-                    }
+                    if (queueItem.getType () == QueueItemType.TYPE_SOLUTION_CHECK)
+                        checkSolution ();
 
                     // when measuring values, thresholds are unkwnown and they need to recorded
-                    if (queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES) {
-                        Globals.getDatabase ().saveMeasurementResult (taskItem, executionResult);
-                        Globals.getDatabase ().deleteQueueItem (queueItem);
-                        Globals.getDatabase ().deleteAttemptItem (queueItem);
-                        // TODO save results to attempt or delete attempt or set flag that it is a measure type
-                        System.out.format ("TYPE_MEASURE_VALUES from %s %n", attemptItem.getFullname ());
-                        System.out.println (executionResult.getMemoryPeak ());
-                        System.out.println (executionResult.getRunTime ());
-                    }
+                    if (queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES)
+                        measureValues ();
                 }
             }
 
@@ -143,6 +126,7 @@ public class Controller implements IController {
         }
         return null;
     }
+
 
 
     private ICompileResult compile (ICompilableLanguage compilableLanguage) throws Exception {
@@ -160,6 +144,7 @@ public class Controller implements IController {
     }
 
 
+
     private IExecutionResult execute (IExecutableLanguage executableLanguage) throws Exception {
         IExecutionResult result;
 
@@ -172,5 +157,29 @@ public class Controller implements IController {
         executableLanguage.postExecution ();
 
         return result;
+    }
+
+
+
+    private void checkSolution () throws GradingException, DatabaseException {
+        ISolutionGrading solutionGrading = new SolutionGrading ();
+
+        // add monitors
+        solutionGrading.setQueueItem (queueItem);
+        solutionGrading.addMonitors ();
+
+        // grade task
+        Globals.getDatabase ().saveGradingResult (queueItem, (SolutionGradingResult) solutionGrading.grade ());
+        Globals.getDatabase ().deleteQueueItem (queueItem);
+        System.out.format ("TYPE_SOLUTION_CHECK from %s %n", attemptItem.getFullname ());
+    }
+
+
+
+    private void measureValues () throws DatabaseException, GradingException {
+        Globals.getDatabase ().saveMeasurementResult (taskItem, executionResult);
+        Globals.getDatabase ().saveGradingResult (attemptItem, executionResult);
+        Globals.getDatabase ().deleteQueueItem (queueItem);
+        System.out.format ("TYPE_MEASURE_VALUES from %s %n", attemptItem.getFullname ());
     }
 }
