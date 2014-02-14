@@ -181,6 +181,7 @@ public class LocalDatabase extends AbstractDatabase {
                     "       A.state,                ",
                     "       A.language,             ",
                     "       A.detail,               ",
+                    "       A.timesent,             ",
                     "       U.firstname,            ",
                     "       U.lastname              ",
                     "FROM                           ",
@@ -217,7 +218,7 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean saveGradingResult (QueueItem item, ISolutionGradingResult result) throws DatabaseException {
+    public boolean saveGradingResult (QueueItem item, ISolutionGradingResult result, AttemptStateType attemptStateType) throws DatabaseException {
         try {
             String sql = Strings.createAndReplace (
                     "UPDATE                                 ",
@@ -226,10 +227,12 @@ public class LocalDatabase extends AbstractDatabase {
                     "    runtime = ?,                       ",
                     "    runoutput = ?,                     ",
                     "    runmemory = ?,                     ",
+                    //
                     "    resulttime = ?,                    ",
                     "    resultoutput = ?,                  ",
                     "    resultmemory = ?,                  ",
                     "    resultfinal = ?,                   ",
+                    //
                     "    resultnote = ?,                    ",
                     "    state = ?                          ",
                     "                                       ",
@@ -248,12 +251,10 @@ public class LocalDatabase extends AbstractDatabase {
             statement.setInt (i++, result.getTimeGradeResult ().getPercent ());
             statement.setInt (i++, result.getOutputGradeResult ().getPercent ());
             statement.setInt (i++, result.getMemoryGradeResult ().getPercent ());
-
             statement.setInt (i++, result.getPercent ());
+            
             statement.setNull (i++, Types.VARCHAR);
-
-            // correct result/state
-            statement.setInt (i++, 1);
+            statement.setInt (i++, attemptStateType.value ());
 
             statement.setInt (i++, item.getAttemptID ());
 
@@ -366,7 +367,7 @@ public class LocalDatabase extends AbstractDatabase {
                     //
                     "    resultnote = ?,                    ",
                     "    state = ?,                         ",
-                    "    orginal = ?                        ",
+                    "    ordinal = ?                        ",
                     "                                       ",
                     "WHERE (                                ",
                     "    id = ?                             ",
@@ -387,7 +388,7 @@ public class LocalDatabase extends AbstractDatabase {
             statement.setInt (i++, 100);
 
             statement.setString (i++, "Values measurement");
-            statement.setInt (i++, AttemptStateType.EXECUTION_OK.value ());
+            statement.setInt (i++, AttemptStateType.MEASUREMENT_OK.value ());
 
             statement.setInt (i++, -1);
             statement.setInt (i++, item.getId ());

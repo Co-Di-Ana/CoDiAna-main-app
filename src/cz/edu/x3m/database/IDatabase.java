@@ -101,10 +101,11 @@ public interface IDatabase {
      *
      * @param item to be updated
      * @param result grading result
+     * @param attemptStateType final attempt state
      * @return true on success false on update
      * @throws DatabaseException on error
      */
-    boolean saveGradingResult (QueueItem item, ISolutionGradingResult result) throws DatabaseException;
+    boolean saveGradingResult (QueueItem item, ISolutionGradingResult result, AttemptStateType attemptStateType) throws DatabaseException;
 
 
 
