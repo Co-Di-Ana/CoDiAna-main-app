@@ -5,6 +5,7 @@ import cz.edu.x3m.processing.compilation.ICompileResult;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 /**
  *
@@ -20,6 +21,7 @@ public class AttemptItem extends AbstractDetailItem {
     private String lastname;
     private boolean isComplex;
     private TaskItem taskItem;
+    private Timestamp timeSent;
 
 
 
@@ -32,6 +34,7 @@ public class AttemptItem extends AbstractDetailItem {
         firstname = row.getString ("firstname");
         lastname = row.getString ("lastname");
         isComplex = row.getInt ("detail") == 1;
+        timeSent = new Timestamp (row.getLong ("timesent"));
     }
 
 
@@ -123,6 +126,15 @@ public class AttemptItem extends AbstractDetailItem {
      */
     public TaskItem getTaskItem () {
         return taskItem;
+    }
+
+
+
+    /**
+     * @return the timeSent
+     */
+    public Timestamp getTimeSent () {
+        return timeSent;
     }
 
 

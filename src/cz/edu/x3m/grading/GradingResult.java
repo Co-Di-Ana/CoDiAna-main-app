@@ -27,4 +27,13 @@ abstract public class GradingResult implements IGradingResult {
     public int getPercent () {
         return (int) (getResult () * 100);
     }
+
+
+
+    @Override
+    public boolean isCorrect () {
+        return getPercent () == 100;
+    }
+    
+    
 }
