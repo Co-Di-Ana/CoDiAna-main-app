@@ -22,7 +22,8 @@ public class TaskItem {
     private final int limitMemoryNothing;
     private final int limitTimeFalling;
     private final int limitTimeNothing;
-    private final GradeMode gradeMode;
+    private final FinalGradeMode finalGradeMode;
+    private final GradeMethod gradeMethod;
     public static final int NOT_SUPPORTED_YET = -1;
 
 
@@ -43,9 +44,9 @@ public class TaskItem {
         limitTimeNothing = row.getInt ("tasklimittimenothing");
         limitMemoryFalling = row.getInt ("tasklimitmemoryfalling");
         limitMemoryNothing = row.getInt ("tasklimitmemorynothing");
-        //
-        //gradeMode = GradeMode.create(row.getInt("grademode"));
-        gradeMode = GradeMode.PRECISE;
+        // methods
+        gradeMethod = GradeMethod.create (row.getInt ("taskgrademethod"));
+        finalGradeMode = FinalGradeMode.PRECISE;
     }
 
 
@@ -172,10 +173,19 @@ public class TaskItem {
 
 
     /**
-     * @return the gradeMode
+     * @return the gradeMethod
      */
-    public GradeMode getGradeMode () {
-        return gradeMode;
+    public GradeMethod getGradeMethod () {
+        return gradeMethod;
+    }
+
+
+
+    /**
+     * @return the finalGradeMode
+     */
+    public FinalGradeMode getFinalGradeMode () {
+        return finalGradeMode;
     }
     
     

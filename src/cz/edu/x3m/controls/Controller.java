@@ -2,6 +2,8 @@ package cz.edu.x3m.controls;
 
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.IPlagiarismSolutionList;
+import cz.edu.x3m.database.data.ISolution;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
@@ -11,6 +13,12 @@ import cz.edu.x3m.grading.ISolutionGrading;
 import cz.edu.x3m.grading.SolutionGrading;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.grading.exception.GradingException;
+import cz.edu.x3m.plagiarism.Difference;
+import cz.edu.x3m.plagiarism.ILanguageComparator;
+import cz.edu.x3m.plagiarism.IPlagiarismResult;
+import cz.edu.x3m.plagiarism.IPlagiasrismPair;
+import cz.edu.x3m.plagiarism.PlagiarismResult;
+import cz.edu.x3m.plagiarism.PlagiasrismPair;
 import cz.edu.x3m.processing.LanguageFactory;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
 import cz.edu.x3m.processing.compilation.ICompileResult;
@@ -19,6 +27,9 @@ import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
+import cz.edu.x3m.utils.PathResolver;
+import cz.edu.x3m.utils.Zipper;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +40,11 @@ import java.util.List;
 public class Controller implements IController {
 
     private static IController instance;
+
+
+
+    private Controller () {
+    }
 
 
 
@@ -47,9 +63,8 @@ public class Controller implements IController {
             return new ArrayList<> ();
 
         // go through all items
-        for (int i = 0, j = items.size (); i < j; i++) {
+        for (int i = 0, j = items.size (); i < j; i++)
             update (items.get (i));
-        }
         return null;
     }
 
@@ -133,7 +148,51 @@ public class Controller implements IController {
         }
 
         if (queueItem.getType () == QueueItemType.TYPE_PLAGIARISM_CHECK) {
-            // TODO do it too
+            queueItem.loadDetails ();
+            // list holder and lists for items and for plags
+            final IPlagiarismSolutionList plagList = (IPlagiarismSolutionList) queueItem.getDetailItem ();
+            final List<IPlagiasrismPair> result = new ArrayList<> ();
+            final List<ISolution> solutions = plagList.getItems ();
+            final int size = solutions.size ();
+
+            // solutions compare result
+            Difference difference;
+            // comparator
+            ILanguageComparator comparator;
+            // files holders
+            String directoryA, directoryB, zipA, zipB;
+
+            for (int i = 0; i < size - 1; i++) {
+                // grab attempt zip file lcoation
+                zipA = PathResolver.getAttemptSolution (solutions.get (i));
+                // grab soon to be location of unzipped solution and unzip solution
+                directoryA = PathResolver.getTempDirectoryA ();
+                if (Zipper.unzip (zipA, directoryA) == false)
+                    continue;
+
+                // create comparator and prepare first 
+                comparator = LanguageComparatorFactory.getInstance ("java");
+                comparator.prepare (new File (directoryA));
+
+                for (int j = i + 1; j < size; j++) {
+                    // grab attempt zip file lcoation
+                    zipB = PathResolver.getAttemptSolution (solutions.get (j));
+                    // grab soon to be location of unzipped solution and unzip solution
+                    directoryB = PathResolver.getTempDirectoryB ();
+                    if (Zipper.unzip (zipB, directoryB) == false)
+                        continue;
+
+                    // compare files and grab result
+                    difference = comparator.compare (new File (directoryB));
+
+                    if (difference.getIdenticalLikelihood () >= 0.75)
+                        result.add (new PlagiasrismPair (solutions.get (i), solutions.get (j), difference));
+                }
+            }
+
+            IPlagiarismResult plagiarismResult = new PlagiarismResult (taskItem, result);
+            Globals.getDatabase ().savePlagCheckResult (queueItem, plagiarismResult);
+
             return null;
         }
         return null;

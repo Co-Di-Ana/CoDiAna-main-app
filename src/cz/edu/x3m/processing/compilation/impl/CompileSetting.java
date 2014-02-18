@@ -52,7 +52,7 @@ public class CompileSetting implements ICompileSetting {
     public static CompileSetting create (QueueItem item) {
         CompileSetting setting = new CompileSetting ();
         setting.mainFileName = item.getTaskItem ().getMainFileName ();
-        setting.sourceDirectoryPath = PathResolver.get (PathResolver.PathType.SOURCE_DIRECTORY, item);
+        setting.sourceDirectoryPath = PathResolver.getCurrentSourceDirectory (item.getTaskID (), item.getUserID ());
         setting.errorPath = PathResolver.get (PathResolver.PathType.COMPILE_ERROR, item);
         setting.outputPath = PathResolver.get (PathResolver.PathType.COMPILE_OUTPUT, item);
         return setting;

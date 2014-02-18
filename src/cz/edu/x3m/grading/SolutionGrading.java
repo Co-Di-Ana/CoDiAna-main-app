@@ -29,16 +29,18 @@ public class SolutionGrading extends AbstractGrading implements ISolutionGrading
             gradings.get (i).grade ();
 
 
-        switch (queueItem.getTaskItem ().getGradeMode ()) {
+        switch (queueItem.getTaskItem ().getFinalGradeMode ()) {
             case TEST:
             default:
                 finalResult = -1;
                 break;
+                
             case MEASURE:
                 for (i = 0; i < gradings.size (); i++)
                     totalResult += gradings.get (i).getResult ().getResult ();
                 finalResult = totalResult / gradings.size ();
                 break;
+                
             case PRECISE:
                 int totalGradings = 0;
                 for (i = 0; i < gradings.size (); i++) {

@@ -1,6 +1,5 @@
 package cz.edu.x3m.database.data;
 
-
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.database.exception.DatabaseException;
@@ -8,30 +7,24 @@ import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-
-
 /**
  * @author Jan Hybs
  */
-public class QueueItem {
+public class QueueItem extends Solution implements IQueueItem {
 
     private final TaskItem taskItem;
     private AbstractDetailItem detailItem;
     private final QueueItemType type;
     private final int id;
-    private final int userID;
-    private final int taskID;
-    private final int attemptID;
     private final int priority;
     private IExecutionResult executionResult;
 
 
+
     public QueueItem (ResultSet row) throws SQLException, DatabaseException, InvalidArgument {
+        super (row);
         taskItem = new TaskItem (row);
-        id = row.getInt ("id");
-        taskID = row.getInt ("taskid");
-        userID = row.getInt ("userid");
-        attemptID = row.getInt ("attemptid");
+        id = row.getInt ("queueid");
         type = QueueItemType.create (row.getInt ("type"));
         priority = row.getInt ("priority");
 
@@ -42,6 +35,7 @@ public class QueueItem {
     }
 
 
+
     public void loadDetails () throws DatabaseException {
         switch (getType ()) {
             case TYPE_SOLUTION_CHECK:
@@ -49,7 +43,7 @@ public class QueueItem {
                 detailItem = Globals.getDatabase ().getSolutionCheckItem (getTaskID (), getUserID ());
                 break;
             case TYPE_PLAGIARISM_CHECK:
-                detailItem = Globals.getDatabase ().getPlagiarismCheckItem (getTaskID (), getUserID ());
+                detailItem = Globals.getDatabase ().getPlagiarismCheckItem (getTaskID (), getUserID (), getTaskItem ().getGradeMethod ());
                 break;
             case TYPE_UNKNOWN:
                 throw new DatabaseException ("Unknown queue type '%s'", getType ());
@@ -57,6 +51,7 @@ public class QueueItem {
         }
 
     }
+
 
 
     /**
@@ -67,12 +62,14 @@ public class QueueItem {
     }
 
 
+
     /**
      * @return the detailItem
      */
     public AbstractDetailItem getDetailItem () {
         return detailItem;
     }
+
 
 
     /**
@@ -83,6 +80,7 @@ public class QueueItem {
     }
 
 
+
     /**
      * @return the unique queue id
      */
@@ -90,29 +88,6 @@ public class QueueItem {
         return id;
     }
 
-
-    /**
-     * @return the user ID
-     */
-    public int getUserID () {
-        return userID;
-    }
-
-
-    /**
-     * @return the task ID
-     */
-    public int getTaskID () {
-        return taskID;
-    }
-
-
-    /**
-     * @return the attempt ID if exists or 0 if not
-     */
-    public int getAttemptID () {
-        return attemptID;
-    }
 
 
     /**
@@ -130,6 +105,7 @@ public class QueueItem {
     public IExecutionResult getExecutionResult () {
         return executionResult;
     }
+
 
 
     /**

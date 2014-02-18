@@ -1,8 +1,9 @@
 package cz.edu.x3m.database;
 
-import cz.edu.x3m.database.data.PlagiarismCheckItem;
+import cz.edu.x3m.database.data.PlagiarismSolutionList;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.GradeMethod;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
@@ -92,7 +93,7 @@ public interface IDatabase {
      * @return detailed object
      * @throws DatabaseException on error
      */
-    PlagiarismCheckItem getPlagiarismCheckItem (int taskID, int relatedID) throws DatabaseException;
+    PlagiarismSolutionList getPlagiarismCheckItem (int taskID, int relatedID, GradeMethod gradeMethod) throws DatabaseException;
 
 
 

@@ -1,12 +1,9 @@
 package cz.edu.x3m.processing.execution.impl;
 
-
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.processing.execution.IExecutionSetting;
 import cz.edu.x3m.utils.PathResolver;
-
-
 
 /**
  *
@@ -21,10 +18,12 @@ public class ExecutionSetting implements IExecutionSetting {
     private String inputPath;
 
 
+
     @Override
     public String getMainFileName () {
         return mainFileName;
     }
+
 
 
     @Override
@@ -33,10 +32,12 @@ public class ExecutionSetting implements IExecutionSetting {
     }
 
 
+
     @Override
     public String getInputPath () {
         return inputPath;
     }
+
 
 
     @Override
@@ -45,10 +46,12 @@ public class ExecutionSetting implements IExecutionSetting {
     }
 
 
+
     @Override
     public String getErrorPath () {
         return errorPath;
     }
+
 
 
     /**
@@ -60,7 +63,7 @@ public class ExecutionSetting implements IExecutionSetting {
     public static ExecutionSetting create (QueueItem item) {
         ExecutionSetting setting = new ExecutionSetting ();
         setting.mainFileName = item.getTaskItem ().getMainFileName ();
-        setting.sourceDirectoryPath = PathResolver.get (PathResolver.PathType.SOURCE_DIRECTORY, item);
+        setting.sourceDirectoryPath = PathResolver.getCurrentSourceDirectory (item.getTaskID (), item.getUserID ());
         setting.inputPath = PathResolver.get (PathResolver.PathType.TASK_INPUT, item);
 
         if (item.getType () == QueueItemType.TYPE_MEASURE_VALUES) {

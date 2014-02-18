@@ -3,15 +3,17 @@ package cz.edu.x3m.database.impl;
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.AbstractDatabase;
 import cz.edu.x3m.database.DatabaseSetting;
-import cz.edu.x3m.database.data.PlagiarismCheckItem;
+import cz.edu.x3m.database.data.PlagiarismSolutionList;
 import cz.edu.x3m.database.data.QueueItem;
 import cz.edu.x3m.database.data.AttemptItem;
+import cz.edu.x3m.database.data.GradeMethod;
 import cz.edu.x3m.database.data.InvalidArgument;
 import cz.edu.x3m.database.data.TaskItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.grading.ISolutionGradingResult;
 import cz.edu.x3m.plagiarism.IPlagiarismResult;
+import cz.edu.x3m.plagiarism.IPlagiasrismPair;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.utils.Strings;
 import java.nio.charset.Charset;
@@ -90,10 +92,12 @@ public class LocalDatabase extends AbstractDatabase {
         try {
             String sql = Strings.createAndReplace (
                     "SELECT                                                 ",
-                    "       Q.id,                                           ",
+                    "       Q.id AS queueid,                                ",
                     "       Q.taskid,                                       ",
                     "       Q.userid,                                       ",
                     "       Q.attemptid,                                    ",
+                    "       A.language,                                     ",
+                    "       A.ordinal,                                      ",
                     "       Q.type, Q.priority,                             ",
                     "       C.name AS taskname,                             ",
                     "       C.mainfilename AS taskmainfilename,             ",
@@ -110,6 +114,10 @@ public class LocalDatabase extends AbstractDatabase {
                     "LEFT JOIN                                              ",
                     "       ::codiana C ON (                                ",
                     "    Q.taskid = C.id                                    ",
+                    ")                                                      ",
+                    "LEFT JOIN                                              ",
+                    "       ::codiana_attempt A ON (                        ",
+                    "    Q.attemptid = A.id                                 ",
                     ")                                                      ",
                     "ORDER BY Q.priority DESC                               ");
 
@@ -211,8 +219,46 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public PlagiarismCheckItem getPlagiarismCheckItem (int taskID, int relatedID) throws DatabaseException {
-        throw new UnsupportedOperationException ("Not supported yet.");
+    public PlagiarismSolutionList getPlagiarismCheckItem (int taskID, int teacherID, GradeMethod gradeMethod) throws DatabaseException {
+
+        try {
+            String sql = Strings.createAndReplace (
+                    "SELECT                         ",
+                    "       A.id AS attemptid,      ",
+                    "       A.taskid,               ",
+                    "       A.userid,               ",
+                    "       A.ordinal,              ",
+                    "       A.language              ",
+                    "FROM                           ",
+                    "       ::codiana_attempt A     ",
+                    "WHERE (                        ",
+                    "    taskid = ? AND             ",
+                    String.format ("state = %d", AttemptStateType.MEASUREMENT_OK.value ()),
+                    ")                              ",
+                    "ORDER BY                       ",
+                    getOrderQuery ("A", gradeMethod));
+
+            PreparedStatement statement = connection.prepareStatement (sql);
+            ResultSet resultSet = statement.executeQuery ();
+            return new PlagiarismSolutionList (taskID, teacherID, resultSet);
+
+        } catch (SQLException e) {
+            throw new DatabaseException (e);
+        }
+    }
+
+
+
+    private static String getOrderQuery (String id, GradeMethod gradeMethod) throws DatabaseException {
+        switch (gradeMethod) {
+            case FIRST:
+                return String.format ("%s.timesent ASC", id);
+            case LAST:
+                return String.format ("%s.timesent DESC", id);
+            case BEST:
+                return String.format ("%s.resultfinal DESC", id);
+        }
+        throw new DatabaseException ("unknown gradeMethod %s", gradeMethod);
     }
 
 
@@ -252,7 +298,7 @@ public class LocalDatabase extends AbstractDatabase {
             statement.setInt (i++, result.getOutputGradeResult ().getPercent ());
             statement.setInt (i++, result.getMemoryGradeResult ().getPercent ());
             statement.setInt (i++, result.getPercent ());
-            
+
             statement.setNull (i++, Types.VARCHAR);
             statement.setInt (i++, attemptStateType.value ());
 
@@ -302,7 +348,42 @@ public class LocalDatabase extends AbstractDatabase {
 
     @Override
     public boolean savePlagCheckResult (QueueItem item, IPlagiarismResult result) throws DatabaseException {
-        throw new UnsupportedOperationException ("Not supported yet.");
+        try {
+            String sql = Strings.createAndReplace (
+                    "INSERT INTO                            ",
+                    "       ::codiana_plags                 ",
+                    "(                                      ",
+                    "    taskid,                            ",
+                    "    firstid,                           ",
+                    "    secondid,                          ",
+                    "    result,                            ",
+                    "    details,                           ",
+                    ") VALUES                               ");
+            StringBuilder sqlBuilder = new StringBuilder (sql);
+
+            // creates sql query VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), ... , (?, ?, ?, ?, ?); 
+            for (int i = 0, j = result.getPlags ().size (); i < j; i++)
+                sqlBuilder.append ("(?, ?, ?, ?, ?), ");
+            sqlBuilder.setCharAt (sqlBuilder.length () - 2, ';');
+
+            // prepare statements
+            PreparedStatement statement = connection.prepareStatement (sql);
+            int i = 1;
+
+            // fill statements
+            for (IPlagiasrismPair pair : result.getPlags ()) {
+                statement.setInt (i++, result.getTaskItem ().getID ());
+                statement.setInt (i++, pair.getFirst ().getUserID ());
+                statement.setInt (i++, pair.getSecond ().getUserID ());
+                statement.setDouble (i++, pair.getDifference ().getIdenticalLikelihood ());
+                statement.setNull (i++, Types.VARCHAR);
+            }
+
+            // execute
+            return statement.executeUpdate () > 0;
+        } catch (Exception e) {
+            throw new DatabaseException (e);
+        }
     }
 
 
