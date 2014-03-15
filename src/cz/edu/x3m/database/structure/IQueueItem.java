@@ -1,5 +1,5 @@
 
-package cz.edu.x3m.database.data;
+package cz.edu.x3m.database.structure;
 
 /**
  *

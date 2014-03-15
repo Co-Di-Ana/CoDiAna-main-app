@@ -1,7 +1,10 @@
 package cz.edu.x3m;
 
 import cz.edu.x3m.core.Globals;
+import cz.edu.x3m.logging.Log;
 
+
+// ------- EMPTY LIMIT TIME, LIMIT MEMORY atd --------------------------------------------
 /**
  * @author Jan
  */
@@ -10,8 +13,12 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main (String[] args) throws Exception {
-        new Main ();
+    public static void main (String[] args) {
+        try {
+            new Main ();
+        } catch (Exception ex) {
+            Log.err (ex);
+        }
     }
 
 
@@ -20,31 +27,15 @@ public class Main {
      * Creates new instance of Main class
      */
     public Main () throws Exception {
+        Log.init ();
+        Log.info ("APPLICATION START");
+        
         Globals.init ();
+        Log.info ("connecting to DB");
         Globals.getDatabase ().connect ();
-        Globals.getController ().update ();
-        startKnockServer ();
-    }
-
-
-
-    private synchronized void waitFor () throws InterruptedException {
-        Thread serverThread = Globals.createServerThread ();
-        serverThread.start ();
-        serverThread.join ();
-    }
-
-
-
-    private void startKnockServer () throws Exception {
-        while (true) {
-            waitFor ();
-            if (!Globals.getServer ().getConnection ().isValid ()) {
-                System.out.println (Globals.getServer ().getConnection ().getErrorDetails ());
-                break;
-            }
-
-            Globals.getController ().update ();
-        }
+        
+        Log.info ("starting threads");
+        PeriodicUpdater.start (5 * 60 * 1000);
+        PortUpdater.start ();
     }
 }

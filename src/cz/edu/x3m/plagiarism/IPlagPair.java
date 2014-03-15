@@ -1,24 +1,24 @@
 package cz.edu.x3m.plagiarism;
 
-import cz.edu.x3m.database.data.ISolution;
+import cz.edu.x3m.database.structure.AttemptItem;
 
 /**
  *
  *  @author Jan Hybs <x3mSpeedy@gmail.com>
  */
-public interface IPlagiasrismPair {
+public interface IPlagPair {
 
     /**
      * @return the first
      */
-    public ISolution getFirst ();
+    public AttemptItem getFirst ();
 
 
 
     /**
      * @return the second
      */
-    public ISolution getSecond ();
+    public AttemptItem getSecond ();
 
 
 

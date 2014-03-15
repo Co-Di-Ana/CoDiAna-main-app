@@ -1,8 +1,7 @@
 package cz.edu.x3m.database.data.types;
 
 
-import cz.edu.x3m.database.data.InvalidArgument;
-import cz.edu.x3m.database.data.TaskItem;
+import cz.edu.x3m.database.exception.InvalidArgument;
 
 
 
@@ -29,11 +28,11 @@ public enum GradeMethodType {
 
     public static GradeMethodType getByOutputValue (int value) throws InvalidArgument {
         switch (value) {
-            case 0:
-                return STRICT;
             case 1:
-                return TOLERANT;
+                return STRICT;
             case 2:
+                return TOLERANT;
+            case 3:
                 return VAGUE;
         }
         throw new InvalidArgument ("Invalid value");
@@ -43,7 +42,6 @@ public enum GradeMethodType {
     public static GradeMethodType getByTimeValue (int value) throws InvalidArgument {
         switch (value) {
             case 1:
-            case TaskItem.NOT_SUPPORTED_YET:
                 return THRESHOLD;
         }
         throw new InvalidArgument ("Invalid value");
@@ -53,7 +51,6 @@ public enum GradeMethodType {
     public static GradeMethodType getByMemoryValue (int value) throws InvalidArgument {
         switch (value) {
             case 1:
-            case TaskItem.NOT_SUPPORTED_YET:
                 return THRESHOLD;
         }
         throw new InvalidArgument ("Invalid value");

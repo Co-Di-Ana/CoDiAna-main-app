@@ -1,7 +1,8 @@
 package cz.edu.x3m.processing.execution.impl;
 
-import cz.edu.x3m.database.data.QueueItem;
+import cz.edu.x3m.database.structure.QueueItem;
 import cz.edu.x3m.database.data.types.QueueItemType;
+import cz.edu.x3m.processing.RunSetting;
 import cz.edu.x3m.processing.execution.IExecutionSetting;
 import cz.edu.x3m.utils.PathResolver;
 
@@ -9,7 +10,7 @@ import cz.edu.x3m.utils.PathResolver;
  *
  * @author Jan Hybs <x3mSpeedy@gmail.com>
  */
-public class ExecutionSetting implements IExecutionSetting {
+public class ExecutionSetting extends RunSetting implements IExecutionSetting {
 
     private String mainFileName;
     private String sourceDirectoryPath;
@@ -66,6 +67,7 @@ public class ExecutionSetting implements IExecutionSetting {
         setting.sourceDirectoryPath = PathResolver.getCurrentSourceDirectory (item.getTaskID (), item.getUserID ());
         setting.inputPath = PathResolver.get (PathResolver.PathType.TASK_INPUT, item);
 
+        // differ for teacher and student
         if (item.getType () == QueueItemType.TYPE_MEASURE_VALUES) {
             setting.outputPath = PathResolver.get (PathResolver.PathType.TASK_OUTPUT, item);
             setting.errorPath = PathResolver.get (PathResolver.PathType.TASK_ERROR, item);

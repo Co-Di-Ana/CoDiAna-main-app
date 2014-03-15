@@ -6,6 +6,8 @@ package cz.edu.x3m.grading;
  */
 abstract public class GradingResult implements IGradingResult {
 
+    public static final double MAX = 1.0;
+    public static final double MIN = 0.0;
     protected final double result;
 
 
@@ -31,9 +33,14 @@ abstract public class GradingResult implements IGradingResult {
 
 
     @Override
-    public boolean isCorrect () {
-        return getPercent () == 100;
+    public boolean isWrong () {
+        return getPercent () <= 0;
     }
-    
-    
+
+
+
+    @Override
+    public boolean isCorrect () {
+        return getPercent () >= 100;
+    }
 }

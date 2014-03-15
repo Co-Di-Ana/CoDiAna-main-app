@@ -5,12 +5,12 @@ import cz.edu.x3m.database.AbstractDatabase;
 import cz.edu.x3m.database.DatabaseSetting;
 import cz.edu.x3m.database.structure.PlagItem;
 import cz.edu.x3m.database.structure.QueueItem;
+import cz.edu.x3m.database.structure.AttemptItem;
 import cz.edu.x3m.database.data.GradeMethod;
 import static cz.edu.x3m.database.data.GradeMethod.BEST;
 import static cz.edu.x3m.database.data.GradeMethod.FIRST;
 import static cz.edu.x3m.database.data.GradeMethod.LAST;
-import cz.edu.x3m.database.data.PlagsCheckStateType;
-import cz.edu.x3m.database.exception.InvalidArgument;
+import cz.edu.x3m.database.data.InvalidArgument;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.exception.DatabaseException;
 import cz.edu.x3m.database.structure.AttemptItem;
@@ -19,7 +19,6 @@ import cz.edu.x3m.database.structure.UserItem;
 import cz.edu.x3m.grading.ISolutionGradingResult;
 import cz.edu.x3m.plagiarism.IPlagResult;
 import cz.edu.x3m.plagiarism.IPlagPair;
-import cz.edu.x3m.processing.IRunEvaluation;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.utils.Strings;
 import java.nio.charset.Charset;
@@ -31,9 +30,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -109,7 +106,7 @@ public class LocalDatabase extends AbstractDatabase {
             "    firstid,                           ",
             "    secondid,                          ",
             "    result,                            ",
-            "    details                            ",
+            "    details,                           ",
             ") VALUES                               ");
     private static final String SAVE_MEASUREMENT_RESULT = Strings.createAndReplace (
             "UPDATE                                 ",
@@ -151,11 +148,35 @@ public class LocalDatabase extends AbstractDatabase {
             "       id = ?                  ",
             "LIMIT 1                        ");
     private static final String GET_ITEMS = Strings.createAndReplace (
-            "SELECT                         ",
-            "       Q.*                     ",
-            "FROM                           ",
-            "       ::codiana_queue Q       ",
-            "ORDER BY Q.priority DESC       ");
+            "SELECT                                                 ",
+            "       Q.id AS queueid,                                ",
+            "       Q.taskid,                                       ",
+            "       Q.userid,                                       ",
+            "       Q.attemptid,                                    ",
+            "       A.language,                                     ",
+            "       A.ordinal,                                      ",
+            "       Q.type, Q.priority,                             ",
+            "       C.name AS taskname,                             ",
+            "       C.mainfilename AS taskmainfilename,             ",
+            "       C.difficulty AS taskdifficulty,                 ",
+            "       C.outputmethod AS taskoutputmethod,             ",
+            "       C.grademethod AS taskgrademethod,               ",
+            "       C.languages AS tasklanguages,                   ",
+            "       C.limittimefalling AS tasklimittimefalling,     ",
+            "       C.limittimenothing AS tasklimittimenothing,     ",
+            "       C.limitmemoryfalling AS tasklimitmemoryfalling, ",
+            "       C.limitmemorynothing AS tasklimitmemorynothing  ",
+            "FROM                                                   ",
+            "       ::codiana_queue Q                               ",
+            "LEFT JOIN                                              ",
+            "       ::codiana C ON (                                ",
+            "    Q.taskid = C.id                                    ",
+            ")                                                      ",
+            "LEFT JOIN                                              ",
+            "       ::codiana_attempt A ON (                        ",
+            "    Q.attemptid = A.id                                 ",
+            ")                                                      ",
+            "ORDER BY Q.priority DESC                               ");
     private static final String GET_USER_BY_ID = Strings.createAndReplace (
             "SELECT *                       ",
             "       FROM ::user             ",
@@ -174,25 +195,6 @@ public class LocalDatabase extends AbstractDatabase {
             "WHERE (                        ",
             "       id = ?                  ",
             ") LIMIT 1                      ");
-    private static final String SET_ATTEMPT_PLAG_STATE = Strings.createAndReplace (
-            "UPDATE ::codiana_attempt         ",
-            "       SET plagscheckstate = ? ",
-            "WHERE (                        ",
-            "       id = ?                  ",
-            ") LIMIT 1                      ");
-    private static final String SET_TASKS_PLAG_STATE = Strings.createAndReplace (
-            "UPDATE ::codiana                 ",
-            "       SET plagscheckstate = ? ",
-            "WHERE (                        ",
-            "       id = ?                  ",
-            ") LIMIT 1                      ");
-    private static final String GET_PLUGIN_CONFIG_LIMIT = Strings.createAndReplace (
-            "SELECT *                       ",
-            "       FROM ::config_plugins   ",
-            "WHERE (                        ",
-            "       plugin = 'codiana' AND  ",
-            "       name LIKE '%limit%'     ",
-            ")                              ");
 
 
 
@@ -238,7 +240,7 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public List<QueueItem> getQueueItems () throws DatabaseException {
+    public List<QueueItem> getItems () throws DatabaseException {
         try {
             createPreparedStatement (GET_ITEMS);
 
@@ -273,7 +275,7 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public AttemptItem getAttemptItem (int taskID, int userID) throws DatabaseException {
+    public AttemptItem getSolutionCheckItem (int taskID, int userID) throws DatabaseException {
         try {
             createPreparedStatement (GET_SOLUTION_CHECK_ITEM);
 
@@ -283,7 +285,7 @@ public class LocalDatabase extends AbstractDatabase {
 
             resultSet.next ();
             return new AttemptItem (resultSet);
-        } catch (SQLException | InvalidArgument e) {
+        } catch (Exception e) {
             throw new DatabaseException (e);
         }
     }
@@ -291,11 +293,15 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public PlagItem getPlagItem (int taskID, int teacherID, GradeMethod gradeMethod) throws DatabaseException {
+    public PlagItem getPlagiarismCheckItem (int taskID, int teacherID, GradeMethod gradeMethod) throws DatabaseException {
 
         final String sql = Strings.createAndReplace (
                 "SELECT                         ",
-                "       A.*                     ",
+                "       A.id AS attemptid,      ",
+                "       A.taskid,               ",
+                "       A.userid,               ",
+                "       A.ordinal,              ",
+                "       A.language              ",
                 "FROM                           ",
                 "       ::codiana_attempt A     ",
                 "WHERE (                        ",
@@ -349,14 +355,14 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean saveMeasurementResult (TaskItem item, IRunEvaluation result) throws DatabaseException {
+    public boolean saveMeasurementResult (TaskItem item, IExecutionResult result) throws DatabaseException {
         try {
             createPreparedStatement (SAVE_MEASUREMENT_RESULT);
 
             statement.setInt (next (), result.getRunTime ());
             statement.setInt (next (), result.getRunTime () * 2);
-            statement.setInt (next (), result.getMemoryAvg ());
-            statement.setInt (next (), result.getMemoryAvg () * 4);
+            statement.setInt (next (), result.getMemoryPeak ());
+            statement.setInt (next (), result.getMemoryPeak () * 2);
             statement.setInt (next (), item.getID ());
 
             return statement.executeUpdate () == 1;
@@ -370,44 +376,31 @@ public class LocalDatabase extends AbstractDatabase {
     @Override
     public boolean savePlagCheckResult (QueueItem item, IPlagResult result) throws DatabaseException {
         try {
+            StringBuilder sqlBuilder = new StringBuilder (SAVE_PLAG_CHECK_RESULT);
+
+            // creates sql query VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), ... , (?, ?, ?, ?, ?); 
             final int size = result.getPlags ().size ();
-            boolean insertResult = true;
-            if (size > 0) {
-                StringBuilder sqlBuilder = new StringBuilder (SAVE_PLAG_CHECK_RESULT);
+            for (int i = 0; i < size; i++)
+                sqlBuilder.append ("(?, ?, ?, ?, ?), ");
+            sqlBuilder.setCharAt (sqlBuilder.length () - 2, ';');
 
-                // creates sql query VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), ... , (?, ?, ?, ?, ?); 
-                for (int i = 0; i < size; i++)
-                    sqlBuilder.append ("(?, ?, ?, ?, ?), ");
-                sqlBuilder.setCharAt (sqlBuilder.length () - 2, ';');
+            // prepare statements
+            createPreparedStatement (sqlBuilder.toString ());
 
-                // prepare statements
-                createPreparedStatement (sqlBuilder.toString ());
-
-                // fill statements
-                for (IPlagPair pair : result.getPlags ()) {
-                    statement.setInt (next (), result.getQueueItem ().getTaskID ());
-                    statement.setInt (next (), pair.getFirst ().getUserID ());
-                    statement.setInt (next (), pair.getSecond ().getUserID ());
-                    statement.setDouble (next (), pair.getDifference ().getIdenticalLikelihood ());
-                    statement.setNull (next (), Types.VARCHAR);
-                }
-                // execute
-                insertResult = statement.executeUpdate () > 0;
+            // fill statements
+            for (IPlagPair pair : result.getPlags ()) {
+                statement.setInt (next (), result.getTaskItem ().getID ());
+                statement.setInt (next (), pair.getFirst ().getUserID ());
+                statement.setInt (next (), pair.getSecond ().getUserID ());
+                statement.setDouble (next (), pair.getDifference ().getIdenticalLikelihood ());
+                statement.setNull (next (), Types.VARCHAR);
             }
 
-            if (result.isSimpleCheck ()) {
-                createPreparedStatement (SET_ATTEMPT_PLAG_STATE);
-                statement.setInt (next (), size == 0 ? PlagsCheckStateType.NO_PLAGS_FOUND.value () : PlagsCheckStateType.PLAGS_FOUND.value ());
-                statement.setInt (next (), result.getQueueItem ().getAttemptID ());
-                return insertResult && executeUpdate (statement);
-            } else {
-                createPreparedStatement (SET_TASKS_PLAG_STATE);
-                statement.setInt (next (), size == 0 ? PlagsCheckStateType.NO_PLAGS_FOUND.value () : PlagsCheckStateType.PLAGS_FOUND.value ());
-                statement.setInt (next (), result.getQueueItem ().getTaskID ());
-                return insertResult && executeUpdate (statement);
-            }
-
-        } catch (SQLException | DatabaseException e) {
+            // execute
+            boolean insertResult = statement.executeUpdate () > 0;
+            // TODO update table codiana_plag_check set appropriate state
+            return insertResult;
+        } catch (Exception e) {
             throw new DatabaseException (e);
         }
     }
@@ -436,13 +429,13 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public boolean saveGradingResult (AttemptItem item, IRunEvaluation result) throws DatabaseException {
+    public boolean saveGradingResult (AttemptItem item, IExecutionResult result) throws DatabaseException {
         try {
             createPreparedStatement (SAVE_GRADING_RESULT_FROM_EXEC);
 
             statement.setInt (next (), result.getRunTime ());
             statement.setInt (next (), result.getLineCount ());
-            statement.setInt (next (), result.getMemoryAvg ());
+            statement.setInt (next (), result.getMemoryPeak ());
 
             statement.setInt (next (), 100);
             statement.setInt (next (), 100);
@@ -480,14 +473,6 @@ public class LocalDatabase extends AbstractDatabase {
 
 
 
-    private static ResultSet executeQuery () throws SQLException {
-        ResultSet set = statement.executeQuery ();
-        set.next ();
-        return set;
-    }
-
-
-
     private static int next () {
         return statementIndex++;
     }
@@ -516,11 +501,11 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public UserItem getUserItem (int id) throws DatabaseException {
+    public UserItem getUserObject (int id) throws DatabaseException {
         try {
             createPreparedStatement (GET_USER_BY_ID);
             statement.setInt (next (), id);
-            return new UserItem (executeQuery ());
+            return new UserItem (statement.executeQuery ());
         } catch (SQLException ex) {
             throw new DatabaseException (ex);
         }
@@ -529,11 +514,11 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public TaskItem getTaskItem (int id) throws DatabaseException {
+    public TaskItem getTaskObject (int id) throws DatabaseException {
         try {
             createPreparedStatement (GET_TASK_BY_ID);
             statement.setInt (next (), id);
-            return new TaskItem (executeQuery ());
+            return new TaskItem (statement.executeQuery ());
         } catch (SQLException | InvalidArgument ex) {
             throw new DatabaseException (ex);
         }
@@ -542,33 +527,13 @@ public class LocalDatabase extends AbstractDatabase {
 
 
     @Override
-    public AttemptItem getAttemptItem (int id) throws DatabaseException {
+    public AttemptItem getAttemptObject (int id) throws DatabaseException {
         try {
             createPreparedStatement (GET_ATTEMPT_BY_ID);
             statement.setInt (next (), id);
-            return new AttemptItem (executeQuery ());
+            return new AttemptItem (statement.executeQuery ());
         } catch (SQLException | InvalidArgument ex) {
             throw new DatabaseException (ex);
         }
-    }
-
-
-
-    @Override
-    public Map<String, String> loadPluginConfig () throws DatabaseException {
-        try {
-            createPreparedStatement (GET_PLUGIN_CONFIG_LIMIT);
-
-            ResultSet resultSet = statement.executeQuery ();
-            Map<String, String> result = new HashMap<> ();
-
-            while (resultSet.next ())
-                result.put (resultSet.getString ("name"), resultSet.getString ("value"));
-
-            return result;
-        } catch (SQLException e) {
-            throw new DatabaseException (e);
-        }
-
     }
 }

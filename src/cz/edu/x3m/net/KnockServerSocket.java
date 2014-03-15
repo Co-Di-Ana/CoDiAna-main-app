@@ -1,14 +1,13 @@
 package cz.edu.x3m.net;
 
 import cz.edu.x3m.core.Globals;
+import cz.edu.x3m.logging.Log;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -66,11 +65,9 @@ public class KnockServerSocket implements Runnable {
                 clientSocket.close ();
                 return;
             }
-            
-            
+
             clientSocket.close ();
             return;
-
 
         } catch (Exception e) {
             throw new KnockSocketException (e);
@@ -85,7 +82,7 @@ public class KnockServerSocket implements Runnable {
         try {
             listen ();
         } catch (KnockSocketException ex) {
-            Logger.getLogger (KnockServerSocket.class.getName ()).log (Level.SEVERE, null, ex);
+            Log.err (ex);
         }
     }
 }

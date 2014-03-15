@@ -29,5 +29,12 @@ public interface IGradingResult {
      * Method returns wheter is result correct or not, depending on result/percent
      * @return t/f
      */
+    public boolean isWrong ();
+    
+    
+    /**
+     * Method returns wheter is result correct or not, depending on result/percent
+     * @return t/f
+     */
     public boolean isCorrect ();
 }

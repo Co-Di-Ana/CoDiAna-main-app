@@ -1,7 +1,7 @@
 package cz.edu.x3m.controls;
 
-import cz.edu.x3m.database.data.AttemptItem;
-import cz.edu.x3m.database.data.QueueItem;
+import cz.edu.x3m.database.data.PlagsCheckStateType;
+import cz.edu.x3m.database.structure.QueueItem;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.data.types.QueueItemType;
 import java.sql.Timestamp;
@@ -13,29 +13,39 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class UpdateResult {
 
-    private final String user;
-    private final String language;
     private final Timestamp timesent;
-    private final AttemptStateType attemptExit;
     private final QueueItemType type;
+    private final String user;
+    private String language;
+    private AttemptStateType attemptState;
+    private PlagsCheckStateType plagState;
 
 
 
-    public UpdateResult (QueueItem queueItem, AttemptItem attemptItem, AttemptStateType attemptStateType) {
-        user = attemptItem.getFullname ();
-        language = attemptItem.getLanguage ();
-        timesent = attemptItem.getTimeSent ();
-        attemptExit = attemptStateType;
+    public UpdateResult (QueueItem queueItem, AttemptStateType attemptStateType) {
+        user = queueItem.getUserItem ().getFullname ();
+        language = queueItem.getAttemptItem ().getLanguage ();
+        timesent = queueItem.getAttemptItem ().getTimeSent ();
+        attemptState = attemptStateType;
         type = queueItem.getType ();
     }
 
 
 
-    public UpdateResult (String user, String language, Timestamp timesent, AttemptStateType attemptExit, QueueItemType type) {
+    public UpdateResult (QueueItem queueItem, PlagsCheckStateType attemptStateType) {
+        user = queueItem.getUserID () == 0 ? "EVERYONE" : queueItem.getUserItem ().getFullname ();
+        timesent = new Timestamp (System.currentTimeMillis ());
+        plagState = attemptStateType;
+        type = queueItem.getType ();
+    }
+
+
+
+    private UpdateResult (String user, String language, Timestamp timesent, AttemptStateType attemptExit, QueueItemType type) {
         this.user = user;
         this.language = language;
         this.timesent = timesent;
-        this.attemptExit = attemptExit;
+        this.attemptState = attemptExit;
         this.type = type;
     }
 
@@ -43,10 +53,23 @@ public class UpdateResult {
 
     @Override
     public String toString () {
-        return String.format ("%-32s %s %s %32s",
-                              timesent,
-                              StringUtils.center (String.format ("[%s]", type), 32),
-                              StringUtils.center (user, 32),
-                              String.format ("[%s]", attemptExit));
+        switch (type) {
+            case TYPE_MEASURE_VALUES:
+            case TYPE_SOLUTION_CHECK:
+                return String.format ("%s %s %s %s",
+                                      timesent,
+                                      String.format ("[%s]", type),
+                                      user,
+                                      String.format ("[%s]", attemptState));
+            case TYPE_PLAGIARISM_CHECK:
+                return String.format ("%s %s %s %s",
+                                      timesent,
+                                      String.format ("[%s]", type),
+                                      user,
+                                      String.format ("[%s]", plagState));
+            default:
+            case TYPE_UNKNOWN:
+                return null;
+        }
     }
 }

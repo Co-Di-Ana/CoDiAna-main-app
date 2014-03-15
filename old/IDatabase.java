@@ -11,10 +11,8 @@ import cz.edu.x3m.database.structure.AttemptItem;
 import cz.edu.x3m.database.structure.UserItem;
 import cz.edu.x3m.grading.ISolutionGradingResult;
 import cz.edu.x3m.plagiarism.IPlagResult;
-import cz.edu.x3m.processing.IRunEvaluation;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -48,7 +46,7 @@ public interface IDatabase {
      * @return list of all items
      * @throws DatabaseException on load error
      */
-    List<QueueItem> getQueueItems () throws DatabaseException;
+    List<QueueItem> getItems () throws DatabaseException;
 
 
 
@@ -63,6 +61,8 @@ public interface IDatabase {
 
 
 
+
+
     /**
      * Gets solution check detail for the given task id and related (student/teacher) id
      *
@@ -71,7 +71,7 @@ public interface IDatabase {
      * @return detailed object
      * @throws DatabaseException on error
      */
-    AttemptItem getAttemptItem (int taskID, int userID) throws DatabaseException;
+    AttemptItem getSolutionCheckItem (int taskID, int userID) throws DatabaseException;
 
 
 
@@ -83,7 +83,7 @@ public interface IDatabase {
      * @return detailed object
      * @throws DatabaseException on error
      */
-    PlagItem getPlagItem (int taskID, int relatedID, GradeMethod gradeMethod) throws DatabaseException;
+    PlagItem getPlagiarismCheckItem (int taskID, int relatedID, GradeMethod gradeMethod) throws DatabaseException;
 
 
 
@@ -108,7 +108,7 @@ public interface IDatabase {
      * @return true on success false on update
      * @throws DatabaseException on error
      */
-    boolean saveGradingResult (AttemptItem item, IRunEvaluation result) throws DatabaseException;
+    boolean saveGradingResult (AttemptItem item, IExecutionResult result) throws DatabaseException;
 
 
 
@@ -132,7 +132,7 @@ public interface IDatabase {
      * @return true on success false on no update
      * @throws DatabaseException when sql error occurs
      */
-    boolean saveMeasurementResult (TaskItem item, IRunEvaluation result) throws DatabaseException;
+    boolean saveMeasurementResult (TaskItem item, IExecutionResult result) throws DatabaseException;
 
 
 
@@ -159,17 +159,13 @@ public interface IDatabase {
 
 
 
-    public UserItem getUserItem (int id) throws DatabaseException;
+    public UserItem getUserObject (int id) throws DatabaseException;
 
 
 
-    public TaskItem getTaskItem (int id) throws DatabaseException;
+    public TaskItem getTaskObject (int id) throws DatabaseException;
 
 
 
-    public AttemptItem getAttemptItem (int id) throws DatabaseException;
-
-
-
-    public Map<String, String> loadPluginConfig () throws DatabaseException;
+    public AttemptItem getAttemptObject (int id) throws DatabaseException;
 }

@@ -1,6 +1,6 @@
 package cz.edu.x3m.grading;
 
-import cz.edu.x3m.database.data.QueueItem;
+import cz.edu.x3m.database.structure.QueueItem;
 import cz.edu.x3m.grading.exception.GradingException;
 
 /**

@@ -1,7 +1,7 @@
 package cz.edu.x3m.database.data.types;
 
 
-import cz.edu.x3m.database.data.InvalidArgument;
+import cz.edu.x3m.database.exception.InvalidArgument;
 
 
 

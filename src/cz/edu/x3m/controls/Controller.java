@@ -1,25 +1,31 @@
 package cz.edu.x3m.controls;
 
 import cz.edu.x3m.core.Globals;
-import cz.edu.x3m.database.data.AttemptItem;
-import cz.edu.x3m.database.data.IPlagiarismSolutionList;
-import cz.edu.x3m.database.data.ISolution;
-import cz.edu.x3m.database.data.QueueItem;
-import cz.edu.x3m.database.data.TaskItem;
+import static cz.edu.x3m.database.data.FinalGradeMode.TEST;
+import cz.edu.x3m.database.data.PlagsCheckStateType;
 import cz.edu.x3m.database.data.types.AttemptStateType;
 import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.database.exception.DatabaseException;
+import cz.edu.x3m.database.exception.InvalidArgument;
+import cz.edu.x3m.database.structure.AttemptItem;
+import cz.edu.x3m.database.structure.IPlagObject;
+import cz.edu.x3m.database.structure.QueueItem;
+import cz.edu.x3m.database.structure.TaskItem;
 import cz.edu.x3m.grading.ISolutionGrading;
 import cz.edu.x3m.grading.SolutionGrading;
 import cz.edu.x3m.grading.SolutionGradingResult;
 import cz.edu.x3m.grading.exception.GradingException;
+import cz.edu.x3m.logging.Log;
 import cz.edu.x3m.plagiarism.Difference;
 import cz.edu.x3m.plagiarism.ILanguageComparator;
-import cz.edu.x3m.plagiarism.IPlagiarismResult;
-import cz.edu.x3m.plagiarism.IPlagiasrismPair;
-import cz.edu.x3m.plagiarism.PlagiarismResult;
-import cz.edu.x3m.plagiarism.PlagiasrismPair;
-import cz.edu.x3m.processing.LanguageFactory;
+import cz.edu.x3m.plagiarism.IPlagPair;
+import cz.edu.x3m.plagiarism.IPlagResult;
+import cz.edu.x3m.plagiarism.LanguageComparatorFactory;
+import cz.edu.x3m.plagiarism.PlagPair;
+import cz.edu.x3m.plagiarism.PlagResult;
+import cz.edu.x3m.processing.IRunEvaluation;
+import cz.edu.x3m.processing.LanguageSupportFactory;
+import cz.edu.x3m.processing.RunEvaluation;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
 import cz.edu.x3m.processing.compilation.ICompileResult;
 import cz.edu.x3m.processing.compilation.impl.CompileSetting;
@@ -27,6 +33,7 @@ import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
+import cz.edu.x3m.utils.ListUtil;
 import cz.edu.x3m.utils.PathResolver;
 import cz.edu.x3m.utils.Zipper;
 import java.io.File;
@@ -56,44 +63,58 @@ public class Controller implements IController {
 
     @Override
     public synchronized List<UpdateResult> update () throws DatabaseException, ExecutionException, GradingException, Exception {
-        List<QueueItem> items = Globals.getDatabase ().getItems ();
+        List<QueueItem> items = Globals.getDatabase ().getQueueItems ();
+        List<UpdateResult> results = new ArrayList<> ();
 
         // empty queue? some mistake/debug
-        if (items == null || items.isEmpty ())
-            return new ArrayList<> ();
+        if (items == null || items.isEmpty ()) {
+            Log.info ("empty queue");
+            return results;
+        }
 
         // go through all items
-        for (int i = 0, j = items.size (); i < j; i++)
-            update (items.get (i));
-        return null;
+        Log.info ("%d items", items.size ());
+        for (int i = 0, j = items.size (); i < j; i++) {
+            Globals.getConfig ().clearCache ();
+            results.add (update (items.get (i)));
+            Log.info ("item update complete");
+        }
+
+        // log results
+        Log.info ("results:");
+        for (UpdateResult updateResult : results)
+            Log.info ("update: %s", updateResult.toString ());
+
+        return results;
     }
 
 
 
     private UpdateResult update (QueueItem queueItem) throws DatabaseException, ExecutionException, GradingException, Exception {
 
-        ICompileResult compilationResult;
-        IExecutionResult executionResult;
+        IRunEvaluation compilationResult;
+        IRunEvaluation executionResult;
         AttemptItem attemptItem;
         IExecutableLanguage languageExec;
         TaskItem taskItem;
 
-
         taskItem = queueItem.getTaskItem ();
         QueueItemType queueType = queueItem.getType ();
+        Log.info ("updating item queueid:%d from userid:%s type %s", queueItem.getId (), queueItem.getUserID (), queueType);
 
         if (queueType == QueueItemType.TYPE_SOLUTION_CHECK
                 || queueType == QueueItemType.TYPE_MEASURE_VALUES) {
 
             // load detail (corresponding attempt)
-            queueItem.loadDetails ();
-            attemptItem = (AttemptItem) queueItem.getDetailItem ();
-            attemptItem.setTaskItem (taskItem);
-            languageExec = LanguageFactory.getInstance (attemptItem.getLanguage ());
+            Log.info ("loading attempt item");
+            attemptItem = queueItem.getAttemptItem ();
+            Log.info ("getting language support instance");
+            languageExec = LanguageSupportFactory.getInstance (attemptItem.getLanguage ());
 
             // compile if compilable
             compilationResult = null;
             if (languageExec instanceof ICompilableLanguage) {
+                Log.info ("compiling");
                 ((ICompilableLanguage) languageExec).setCompileSettings (CompileSetting.create (queueItem));
                 compilationResult = compile ((ICompilableLanguage) languageExec);
 
@@ -103,19 +124,34 @@ public class Controller implements IController {
 
                 // Interrupted compilation, abort processing
                 if (compilationResult.isInterrupted ()) {
+                    Log.err ("compile interrupted");
+                    Log.err (compilationResult.print ());
+                    Log.err (compilationResult.getThrowable ());
+
+                    Log.info ("saving to DB");
                     Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT, null);
-                    return new UpdateResult (queueItem, attemptItem, AttemptStateType.COMPILATION_TIMEOUT);
+                    Log.info ("deleting from queue");
+                    Globals.getDatabase ().deleteQueueItem (queueItem);
+                    return new UpdateResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT);
                 }
 
                 // Compilation error, abort processing
                 if (!compilationResult.isSuccessful ()) {
-                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_ERROR, compilationResult.getDetails ());
-                    return new UpdateResult (queueItem, attemptItem, AttemptStateType.COMPILATION_ERROR);
+                    Log.err ("compile error");
+                    Log.err (compilationResult.print ());
+                    Log.err (compilationResult.getThrowable ());
+
+                    Log.info ("saving to DB");
+                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_ERROR, compilationResult.getError ());
+                    Log.info ("deleting from queue");
+                    Globals.getDatabase ().deleteQueueItem (queueItem);
+                    return new UpdateResult (queueItem, AttemptStateType.COMPILATION_ERROR);
                 }
             }
 
             // execute if compilation is success or there is no compilation needed
             executionResult = null;
+            Log.info ("executing");
             languageExec.setExecutionSettings (ExecutionSetting.create (queueItem));
             executionResult = execute (languageExec);
 
@@ -126,16 +162,31 @@ public class Controller implements IController {
 
             // Interrupted execution, abort processing
             if (executionResult.isInterrupted ()) {
+                Log.err ("executing interrupted");
+                Log.err (executionResult.print ());
+                Log.err (executionResult.getThrowable ());
+
+                Log.info ("saving to DB");
                 Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_TIMEOUT, null);
-                return new UpdateResult (queueItem, attemptItem, AttemptStateType.EXECUTION_TIMEOUT);
+                Log.info ("deleting from queue");
+                Globals.getDatabase ().deleteQueueItem (queueItem);
+                return new UpdateResult (queueItem, AttemptStateType.EXECUTION_TIMEOUT);
             }
 
             // Execution error, abort processing
             if (!executionResult.isSuccessful ()) {
-                Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_ERROR, executionResult.getDetails ());
-                return new UpdateResult (queueItem, attemptItem, AttemptStateType.EXECUTION_ERROR);
+                Log.err ("executing error %d", executionResult.getExitValue ());
+                Log.err (executionResult.print ());
+                Log.err (executionResult.getThrowable ());
+
+                Log.info ("saving to DB");
+                Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_ERROR, executionResult.getError ());
+                Log.info ("deleting from queue");
+                Globals.getDatabase ().deleteQueueItem (queueItem);
+                return new UpdateResult (queueItem, AttemptStateType.EXECUTION_ERROR);
             } else {
-                queueItem.setExecutionResult (executionResult);
+                Log.info ("execution successfull");
+                queueItem.getAttemptItem ().setExecutionResult (executionResult);
 
                 // solution check will grade solution
                 if (queueItem.getType () == QueueItemType.TYPE_SOLUTION_CHECK)
@@ -145,38 +196,61 @@ public class Controller implements IController {
                 if (queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES)
                     return measureValues (queueItem, attemptItem, taskItem, executionResult);
             }
-        }
-
-        if (queueItem.getType () == QueueItemType.TYPE_PLAGIARISM_CHECK) {
-            queueItem.loadDetails ();
+        } else if (queueItem.getType () == QueueItemType.TYPE_PLAGIARISM_CHECK) {
             // list holder and lists for items and for plags
-            final IPlagiarismSolutionList plagList = (IPlagiarismSolutionList) queueItem.getDetailItem ();
-            final List<IPlagiasrismPair> result = new ArrayList<> ();
-            final List<ISolution> solutions = plagList.getItems ();
+            final IPlagObject plagList = queueItem.getPlagObject ();
+            final List<IPlagPair> result = new ArrayList<> ();
+            final List<AttemptItem> solutions = plagList.getItems ();
             final int size = solutions.size ();
 
             // solutions compare result
             Difference difference;
+            AttemptItem itemA, itemB;
             // comparator
             ILanguageComparator comparator;
             // files holders
             String directoryA, directoryB, zipA, zipB;
+            // if userid is zero -> check all solution 
+            boolean isSimpleCheck = queueItem.getUserID () != 0;
 
+            // move desired to 0 index and break for cycle after one check
+            if (isSimpleCheck) {
+                int searchIndex = ListUtil.findByAttemptID (solutions, queueItem.getAttemptID ());
+                if (searchIndex == -1)
+                    throw new InvalidArgument ("invalid attemptID argument");
+                AttemptItem copy = solutions.get (0);
+                solutions.set (0, solutions.get (searchIndex));
+                solutions.set (searchIndex, copy);
+            }
+
+            // check all solutions
             for (int i = 0; i < size - 1; i++) {
                 // grab attempt zip file lcoation
-                zipA = PathResolver.getAttemptSolution (solutions.get (i));
+                itemA = solutions.get (i);
+                zipA = PathResolver.getAttemptSolution (itemA);
                 // grab soon to be location of unzipped solution and unzip solution
                 directoryA = PathResolver.getTempDirectoryA ();
                 if (Zipper.unzip (zipA, directoryA) == false)
                     continue;
 
-                // create comparator and prepare first 
-                comparator = LanguageComparatorFactory.getInstance ("java");
+                // create comparator
+                comparator = LanguageComparatorFactory.getInstance (itemA.getLanguage ());
+                // unsupported comparator skip
+                if (comparator == null)
+                    continue;
+
+                // prepare first solution
                 comparator.prepare (new File (directoryA));
 
                 for (int j = i + 1; j < size; j++) {
+                    itemB = solutions.get (j);
+
+                    // if solutions are incomprable, skip it
+                    if (!itemA.getLanguage ().equals (itemB.getLanguage ()))
+                        continue;
+
                     // grab attempt zip file lcoation
-                    zipB = PathResolver.getAttemptSolution (solutions.get (j));
+                    zipB = PathResolver.getAttemptSolution (itemB);
                     // grab soon to be location of unzipped solution and unzip solution
                     directoryB = PathResolver.getTempDirectoryB ();
                     if (Zipper.unzip (zipB, directoryB) == false)
@@ -184,31 +258,32 @@ public class Controller implements IController {
 
                     // compare files and grab result
                     difference = comparator.compare (new File (directoryB));
+                    Log.info ("comparement  %1.2f %% %s %s", difference.getIdenticalLikelihood () * 100, itemA.getUserItem ().getFullname (), itemB.getUserItem ().getFullname ());
 
-                    if (difference.getIdenticalLikelihood () >= 0.75)
-                        result.add (new PlagiasrismPair (solutions.get (i), solutions.get (j), difference));
+                    if (difference.getIdenticalLikelihood () >= 0.70)
+                        result.add (new PlagPair (solutions.get (i), solutions.get (j), difference));
                 }
+
+                if (isSimpleCheck)
+                    break;
             }
 
-            IPlagiarismResult plagiarismResult = new PlagiarismResult (taskItem, result);
+            IPlagResult plagiarismResult = new PlagResult (queueItem, result, isSimpleCheck);
             Globals.getDatabase ().savePlagCheckResult (queueItem, plagiarismResult);
+            Globals.getDatabase ().deleteQueueItem (queueItem);
 
-            return null;
+            return new UpdateResult (queueItem, result.isEmpty () ? PlagsCheckStateType.NO_PLAGS_FOUND : PlagsCheckStateType.PLAGS_FOUND);
         }
-        return null;
+        throw new InvalidArgument ("Unsupported queue type");
     }
 
 
 
-    private ICompileResult compile (ICompilableLanguage compilableLanguage) throws Exception {
-        ICompileResult result;
+    private IRunEvaluation compile (ICompilableLanguage compilableLanguage) throws Exception {
+        IRunEvaluation result;
 
         compilableLanguage.preCompilation ();
-
-        result = compilableLanguage.compile ();
-        if (result != null && !result.isSuccessful ())
-            return result;
-
+        result = new RunEvaluation (compilableLanguage.compile ());
         compilableLanguage.postCompilation ();
 
         return result;
@@ -216,15 +291,11 @@ public class Controller implements IController {
 
 
 
-    private IExecutionResult execute (IExecutableLanguage executableLanguage) throws Exception {
-        IExecutionResult result;
+    private IRunEvaluation execute (IExecutableLanguage executableLanguage) throws Exception {
+        IRunEvaluation result;
 
         executableLanguage.preExecution ();
-
-        result = executableLanguage.execute ();
-        if (result != null && !result.isSuccessful ())
-            return result;
-
+        result = new RunEvaluation (executableLanguage.execute ());
         executableLanguage.postExecution ();
 
         return result;
@@ -232,28 +303,35 @@ public class Controller implements IController {
 
 
 
-    private UpdateResult checkSolution (QueueItem queueItem, AttemptItem attemptItem) throws GradingException, DatabaseException {
+    private UpdateResult checkSolution (QueueItem queueItem, AttemptItem attemptItem) throws GradingException, DatabaseException, InvalidArgument {
         ISolutionGrading solutionGrading = new SolutionGrading ();
 
         // add monitors
+        Log.info ("add monitors");
         solutionGrading.setQueueItem (queueItem);
         solutionGrading.addMonitors ();
 
         // grade task
+        Log.info ("grading");
         SolutionGradingResult gradingResult = (SolutionGradingResult) solutionGrading.grade ();
         AttemptStateType attemptStateType = determinateAttemptState (queueItem.getTaskItem (), gradingResult);
+        Log.info ("saving to DB");
         Globals.getDatabase ().saveGradingResult (queueItem, gradingResult, attemptStateType);
+        Log.info ("deleting from queue");
         Globals.getDatabase ().deleteQueueItem (queueItem);
-        return new UpdateResult (queueItem, attemptItem, attemptStateType);
+        return new UpdateResult (queueItem, attemptStateType);
     }
 
 
 
-    private UpdateResult measureValues (QueueItem queueItem, AttemptItem attemptItem, TaskItem taskItem, IExecutionResult executionResult) throws DatabaseException, GradingException {
+    private UpdateResult measureValues (QueueItem queueItem, AttemptItem attemptItem, TaskItem taskItem, IRunEvaluation executionResult) throws DatabaseException, GradingException {
+        Log.info ("saving to DB (codiana)");
         Globals.getDatabase ().saveMeasurementResult (taskItem, executionResult);
+        Log.info ("saving to DB (attempt)");
         Globals.getDatabase ().saveGradingResult (attemptItem, executionResult);
+        Log.info ("deleting from queue");
         Globals.getDatabase ().deleteQueueItem (queueItem);
-        return new UpdateResult (queueItem, attemptItem, AttemptStateType.MEASUREMENT_OK);
+        return new UpdateResult (queueItem, AttemptStateType.MEASUREMENT_OK);
     }
 
 
@@ -269,20 +347,42 @@ public class Controller implements IController {
      * @param gradingResult
      * @return 
      */
-    private AttemptStateType determinateAttemptState (TaskItem taskItem, SolutionGradingResult gradingResult) {
-        boolean output = gradingResult.getOutputGradeResult ().isCorrect ();
-        boolean time = gradingResult.getTimeGradeResult ().isCorrect ();
-        boolean memory = gradingResult.getMemoryGradeResult ().isCorrect ();
+    private AttemptStateType determinateAttemptState (TaskItem taskItem, SolutionGradingResult gradingResult) throws InvalidArgument {
+        Log.info ("getting final state");
+        boolean outputWrong = gradingResult.getOutputGradeResult ().isWrong ();
+        boolean timeWrong = gradingResult.getTimeGradeResult ().isWrong ();
+        boolean memoryWrong = gradingResult.getMemoryGradeResult ().isWrong ();
 
-        if (!output)
-            return AttemptStateType.OUTPUT_ERROR;
+        boolean outputCorrect = gradingResult.getOutputGradeResult ().isCorrect ();
 
-        if (!time)
-            return AttemptStateType.TIME_ERROR;
+        switch (taskItem.getFinalGradeMode ()) {
+            case TEST:
+            case MEASURE:
 
-        if (!memory)
-            return AttemptStateType.MEMORY_ERROR;
+                if (outputWrong)
+                    return AttemptStateType.OUTPUT_ERROR;
 
-        return AttemptStateType.MEASUREMENT_OK;
+                if (timeWrong)
+                    return AttemptStateType.TIME_ERROR;
+
+                if (memoryWrong)
+                    return AttemptStateType.MEMORY_ERROR;
+
+                return AttemptStateType.MEASUREMENT_OK;
+
+            case PRECISE:
+                if (!outputCorrect)
+                    return AttemptStateType.OUTPUT_ERROR;
+
+                if (timeWrong)
+                    return AttemptStateType.TIME_ERROR;
+
+                if (memoryWrong)
+                    return AttemptStateType.MEMORY_ERROR;
+
+                return AttemptStateType.MEASUREMENT_OK;
+        }
+
+        throw new InvalidArgument ("task final grade incorrect value");
     }
 }

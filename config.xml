@@ -23,13 +23,18 @@
     </phpserver>
     <languages>
         <item>
+            <name>Java6</name>
             <extension>java</extension>
             <classname>cz.edu.x3m.JavaLanguage</classname>
+            <plagsLib>cz.edu.x3m.plagiarism.JavaComparator</plagsLib>
         </item>
         <item>
-            <extension>py</extension>
-            <classname>cz.edu.x3m.PythonLanguage</classname>
+            <name>Java7</name>
+            <extension>java</extension>
+            <supportLib>cz.edu.x3m.JavaLanguage</supportLib>
+            <plagsLib />
         </item>
     </languages>
     <data-directory>c:\xampp\htdocs\moodle\mod\codiana\data\</data-directory>
+    <run-script>/bin/run.sh</run-script>
 </codiana>

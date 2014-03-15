@@ -1,8 +1,8 @@
 package cz.edu.x3m.utils;
 
 import cz.edu.x3m.core.Globals;
-import cz.edu.x3m.database.data.ISolution;
-import cz.edu.x3m.database.data.QueueItem;
+import cz.edu.x3m.database.structure.AttemptItem;
+import cz.edu.x3m.database.structure.QueueItem;
 import java.io.File;
 
 /**
@@ -78,8 +78,8 @@ public class PathResolver {
      * @param s solution
      * @return path to zip file
      */
-    public static String getAttemptSolution (ISolution s) {
-        return getPreviousSolution (s.getTaskID (), s.getUserID (), s.getAttemptID ());
+    public static String getAttemptSolution (AttemptItem s) {
+        return getPreviousSolution (s.getTaskID (), s.getUserID (), s.getOrdinal ());
     }
 
 

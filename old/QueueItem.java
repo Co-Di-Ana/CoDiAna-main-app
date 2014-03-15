@@ -3,6 +3,7 @@ package cz.edu.x3m.database.data;
 import cz.edu.x3m.core.Globals;
 import cz.edu.x3m.database.data.types.QueueItemType;
 import cz.edu.x3m.database.exception.DatabaseException;
+import cz.edu.x3m.database.structure.TaskObject;
 import cz.edu.x3m.processing.execution.IExecutionResult;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +13,7 @@ import java.sql.SQLException;
  */
 public class QueueItem extends Solution implements IQueueItem {
 
-    private final TaskItem taskItem;
+    private final TaskObject taskItem;
     private AbstractDetailItem detailItem;
     private final QueueItemType type;
     private final int id;
@@ -23,7 +24,8 @@ public class QueueItem extends Solution implements IQueueItem {
 
     public QueueItem (ResultSet row) throws SQLException, DatabaseException, InvalidArgument {
         super (row);
-        taskItem = new TaskItem (row);
+        
+        taskItem = new TaskObject (row);
         id = row.getInt ("queueid");
         type = QueueItemType.create (row.getInt ("type"));
         priority = row.getInt ("priority");
@@ -57,7 +59,7 @@ public class QueueItem extends Solution implements IQueueItem {
     /**
      * @return the task item
      */
-    public TaskItem getTaskItem () {
+    public TaskObject getTaskItem () {
         return taskItem;
     }
 

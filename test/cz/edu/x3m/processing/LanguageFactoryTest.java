@@ -48,6 +48,6 @@ public class LanguageFactoryTest {
     @Test(expected = ExecutionException.class)
     public void testGetInstance () throws Exception {
         System.out.println ("getInstance");
-        LanguageFactory.getInstance (null);
+        LanguageSupportFactory.getInstance (null);
     }
 }

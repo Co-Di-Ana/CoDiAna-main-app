@@ -1,20 +1,21 @@
 package cz.edu.x3m.plagiarism;
 
-import cz.edu.x3m.database.data.ISolution;
+import cz.edu.x3m.database.structure.AttemptItem;
+
 
 /**
  *
  *  @author Jan Hybs <x3mSpeedy@gmail.com>
  */
-public class PlagiasrismPair implements IPlagiasrismPair {
+public class PlagPair implements IPlagPair {
 
-    private final ISolution first;
-    private final ISolution second;
+    private final AttemptItem first;
+    private final AttemptItem second;
     private final Difference difference;
 
 
 
-    public PlagiasrismPair (ISolution first, ISolution second, Difference difference) {
+    public PlagPair (AttemptItem first, AttemptItem second, Difference difference) {
         this.first = first;
         this.second = second;
         this.difference = difference;
@@ -23,14 +24,14 @@ public class PlagiasrismPair implements IPlagiasrismPair {
 
 
     @Override
-    public ISolution getFirst () {
+    public AttemptItem getFirst () {
         return first;
     }
 
 
 
     @Override
-    public ISolution getSecond () {
+    public AttemptItem getSecond () {
         return second;
     }
 

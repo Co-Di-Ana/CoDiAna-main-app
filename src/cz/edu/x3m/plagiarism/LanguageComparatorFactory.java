@@ -1,7 +1,7 @@
-package cz.edu.x3m.controls;
+package cz.edu.x3m.plagiarism;
 
 import cz.edu.x3m.core.Globals;
-import cz.edu.x3m.plagiarism.ILanguageComparator;
+import cz.edu.x3m.logging.Log;
 import cz.edu.x3m.processing.execption.ExecutionException;
 import cz.edu.x3m.utils.JarLoader;
 
@@ -16,12 +16,15 @@ public class LanguageComparatorFactory {
 
 
 
-    public static ILanguageComparator getInstance (String extension) throws ExecutionException {
+    public static ILanguageComparator getInstance (String name) throws ExecutionException {
         try {
             init ();
-            String classname = Globals.getConfig ().getLanguageClassName (extension);
-            if (classname == null)
-                throw new ExecutionException ("Unregistered extension '.%s'", extension);
+            String classname = Globals.getConfig ().getLanguagePlagsClassname (name);
+            if (classname == null || classname.isEmpty ()) {
+                Log.err ("Unregistered name '%s'", name);
+                return null;
+            }
+
 
             return (ILanguageComparator) loader.get (classname);
         } catch (Exception ex) {
@@ -36,9 +39,12 @@ public class LanguageComparatorFactory {
             return;
 
         loader = new JarLoader (LanguageComparatorFactory.class.getClassLoader ());
-        loader.add ("/home/hans/NetBeansProjects/LanguageJava/dist/");
-//        loader.add ("libs/lang/");
-//        loader.add ("lib/lang/");
+        if (Globals.DEBUG) {
+            loader.add ("c:\\Users\\Jan\\Documents\\NetBeansProjects\\DP\\CoDiAna-plagiarism-java\\dist\\");
+        } else {
+            loader.add ("libs/lang/");
+            loader.add ("lib/lang/");
+        }
 
         inited = true;
     }

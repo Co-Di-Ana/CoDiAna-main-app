@@ -5,9 +5,7 @@ import cz.edu.x3m.grading.output.OutputGradeResult;
 import cz.edu.x3m.utils.InputTokenizer;
 import cz.edu.x3m.utils.Strings;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.StreamTokenizer;
 
 /**
  * @author Jan Hybs

@@ -16,6 +16,7 @@ abstract public class AbstractOutputGrading extends AbstractGrading {
     @Override
     public GradingResult grade () throws GradingException {
         try {
+            // TODO zkontrolovat zda soubory existuji
             File originalFile = new File (PathResolver.get (PathResolver.PathType.TASK_OUTPUT, queueItem));
             File comparedFile = new File (PathResolver.get (PathResolver.PathType.EXECUTION_OUTPUT, queueItem));
             return compare (originalFile, comparedFile);

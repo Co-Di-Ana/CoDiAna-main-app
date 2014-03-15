@@ -1,14 +1,17 @@
 package cz.edu.x3m.processing.compilation.impl;
 
-import cz.edu.x3m.database.data.QueueItem;
+import cz.edu.x3m.processing.RunSetting;
+import cz.edu.x3m.core.Globals;
+import cz.edu.x3m.database.structure.QueueItem;
 import cz.edu.x3m.processing.compilation.ICompileSetting;
 import cz.edu.x3m.utils.PathResolver;
+import java.util.List;
 
 /**
  *
  * @author Jan Hybs <x3mSpeedy@gmail.com>
  */
-public class CompileSetting implements ICompileSetting {
+public class CompileSetting extends RunSetting implements ICompileSetting {
 
     private String mainFileName;
     private String sourceDirectoryPath;

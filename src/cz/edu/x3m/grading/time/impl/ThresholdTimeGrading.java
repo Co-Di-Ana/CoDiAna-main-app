@@ -14,13 +14,21 @@ public class ThresholdTimeGrading extends AbstractGrading {
 
     @Override
     public GradingResult grade () throws GradingException {
-        int runTime = queueItem.getExecutionResult ().getRunTime ();
+        int runTime = queueItem.getAttemptItem ().getExecutionResult ().getRunTime ();
+        
+        // is not set?
+        if (!queueItem.getTaskItem ().isLimitTimeSet ())
+            return this.result = new TimeGradeResult (GradingResult.MAX, runTime);
+        
+        
         double timeResult = MathLib.getRelativeBisectedValue (
                 runTime,
                 queueItem.getTaskItem ().getLimitTimeFalling (),
                 queueItem.getTaskItem ().getLimitTimeNothing ());
 
         return this.result = new TimeGradeResult (timeResult, runTime);
+
+
     }
 
 

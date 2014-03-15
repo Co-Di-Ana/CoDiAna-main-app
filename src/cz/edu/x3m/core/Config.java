@@ -1,5 +1,8 @@
 package cz.edu.x3m.core;
 
+import cz.edu.x3m.database.exception.DatabaseException;
+import cz.edu.x3m.logging.Log;
+import cz.edu.x3m.utils.DataProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,13 +23,13 @@ public class Config {
     private static final String CONFIG_PATH = "config.xml";
     private static final String TAG_LANGUAGES = "languages";
     private static final String TAG_ITEM = "item";
-    private static final String TAG_EXTENSION = "extension";
-    private static final String TAG_CLASSNAME = "classname";
     private static final String TAG_DATABASE = "database";
     private static final String TAG_PHP_SERVER = "phpserver";
     //
     private static Config instance;
     private static Element rootNode;
+    private static final int LIMIT_TIME = 60;
+    private static final int LIMIT_MEMORY = 500 * 1000;
 
 
 
@@ -36,7 +39,9 @@ public class Config {
     public static Element getRootNode () {
         return rootNode;
     }
-    private final Map<String, String> languages;
+    private final Map<String, String> langSupportClassname;
+    private final Map<String, String> langPlagsClassname;
+    private final Map<String, String> langExtension;
     //
     private final String server;
     private final String port;
@@ -46,11 +51,15 @@ public class Config {
     private final String prefix;
     private final String type;
     private final String socketMessage;
-    private final int socketKnockPort;
-    private final List<String> allowedAddresses;
+    private final String runScript;
+    private final String dataDirectory;
     private String sshUsername;
     private String sshPassword;
-    private String dataDirectory;
+    //
+    private final int socketKnockPort;
+    private final List<String> allowedAddresses;
+    private final Map<String, String> pluginConfig = new HashMap<> ();
+    private boolean pluginConfigLoaded;
 
 
 
@@ -58,7 +67,9 @@ public class Config {
         SAXBuilder builder = new SAXBuilder ();
         Document document = (Document) builder.build (new File (Config.CONFIG_PATH));
         rootNode = document.getRootElement ();
-        languages = new HashMap<> ();
+        langSupportClassname = new HashMap<> ();
+        langPlagsClassname = new HashMap<> ();
+        langExtension = new HashMap<> ();
 
         List<Element> tmp;
         Element element;
@@ -66,10 +77,14 @@ public class Config {
         //# languages
         tmp = getItems (TAG_LANGUAGES);
         tmp = tmp.get (0).getChildren (TAG_ITEM);
-        for (int i = 0; i < tmp.size (); i++)
-            languages.put ((element = tmp.get (i)).getChildText (TAG_EXTENSION), element.getChildText (TAG_CLASSNAME));
+        for (int i = 0; i < tmp.size (); i++) {
+            element = tmp.get (i);
+            langSupportClassname.put (element.getChildText ("name"), element.getChildText ("supportLib"));
+            langPlagsClassname.put (element.getChildText ("name"), element.getChildText ("plagsLib"));
+            langExtension.put (element.getChildText ("name"), element.getChildText ("extension"));
+        }
 
-        if (languages.isEmpty ())
+        if (langSupportClassname.isEmpty ())
             throw new ConfigException ("Config file doesn't contain any programming language!");
 
         //# php server socket setting
@@ -104,8 +119,9 @@ public class Config {
             sshPassword = getValue (element, "password", false);
         }
 
-        //# data directory
+        //# data directory and run script location
         dataDirectory = getValue (rootNode, "data-directory", true);
+        runScript = getValue (rootNode, "run-script", true);
     }
 
 
@@ -141,8 +157,14 @@ public class Config {
 
 
 
-    public String getLanguageClassName (String languageExtension) {
-        return getLanguages ().containsKey (languageExtension) ? getLanguages ().get (languageExtension) : null;
+    public String getLanguageSupportClassname (String languageName) {
+        return getLangSupportClassname ().containsKey (languageName) ? getLangSupportClassname ().get (languageName) : null;
+    }
+
+
+
+    public String getLanguagePlagsClassname (String languageName) {
+        return getLangPlagsClassname ().containsKey (languageName) ? getLangPlagsClassname ().get (languageName) : null;
     }
 
 
@@ -154,10 +176,28 @@ public class Config {
 
 
     /**
-     * @return the supported languages
+     * @return map where key is language name (Java6, Java7) and value is classname of support library
      */
-    public Map<String, String> getLanguages () {
-        return languages;
+    public Map<String, String> getLangSupportClassname () {
+        return langSupportClassname;
+    }
+
+
+
+    /**
+     * @return map where key is language name (Java6, Java7) and value is classname of plags library
+     */
+    public Map<String, String> getLangPlagsClassname () {
+        return langPlagsClassname;
+    }
+
+
+
+    /**
+     * @return map where key is language name (Java6, Java7) and value its extension (java)
+     */
+    public Map<String, String> getLangExtension () {
+        return langExtension;
     }
 
 
@@ -263,5 +303,51 @@ public class Config {
 
     public String getDataDirectory () {
         return dataDirectory;
+    }
+
+
+
+    public String getRunScript () {
+        return runScript;
+    }
+
+
+
+    public int getLimitTime () {
+        if (!pluginConfigLoaded)
+            loadPluginConfig ();
+        String value = pluginConfig.get ("limittime");
+        return value == null || value.isEmpty () ? LIMIT_TIME : Integer.parseInt (value);
+    }
+
+
+
+    public int getLimitMemory () {
+        if (!pluginConfigLoaded)
+            loadPluginConfig ();
+        String value = pluginConfig.get ("limitmemory");
+        return value == null || value.isEmpty () ? LIMIT_MEMORY : Integer.parseInt (value);
+    }
+
+
+
+    private void loadPluginConfig () {
+        try {
+            Map<String, String> config = Globals.getDatabase ().loadPluginConfig ();
+            pluginConfig.clear ();
+            pluginConfig.putAll (config);
+            pluginConfigLoaded = true;
+        } catch (DatabaseException e) {
+            Log.err (e);
+        }
+    }
+
+
+
+    public void clearCache () {
+        DataProvider.clearCache ();
+        pluginConfigLoaded = false;
+        pluginConfig.clear ();
+        System.gc ();
     }
 }

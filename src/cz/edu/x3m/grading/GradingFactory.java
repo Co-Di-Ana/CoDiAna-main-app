@@ -1,6 +1,7 @@
 package cz.edu.x3m.grading;
 
 import cz.edu.x3m.database.data.types.GradeMethodType;
+import cz.edu.x3m.grading.memory.impl.MemoryGrading;
 import cz.edu.x3m.grading.output.impl.StrictOutputGrading;
 import cz.edu.x3m.grading.output.impl.TolerantOutputGrading;
 import cz.edu.x3m.grading.output.impl.VagueOutputGrading;
@@ -40,9 +41,8 @@ public class GradingFactory {
 
     public static IGrading getMemoryGradingInstance (GradeMethodType type) {
         switch (type) {
-            case THRESHOLD:
             default:
-                return null;
+                return new MemoryGrading ();
         }
     }
 }
