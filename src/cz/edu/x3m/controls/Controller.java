@@ -23,15 +23,15 @@ import cz.edu.x3m.plagiarism.IPlagResult;
 import cz.edu.x3m.plagiarism.LanguageComparatorFactory;
 import cz.edu.x3m.plagiarism.PlagPair;
 import cz.edu.x3m.plagiarism.PlagResult;
+import cz.edu.x3m.plagiarism.exception.CompareException;
 import cz.edu.x3m.processing.IRunEvaluation;
 import cz.edu.x3m.processing.LanguageSupportFactory;
 import cz.edu.x3m.processing.RunEvaluation;
 import cz.edu.x3m.processing.compilation.ICompilableLanguage;
-import cz.edu.x3m.processing.compilation.ICompileResult;
 import cz.edu.x3m.processing.compilation.impl.CompileSetting;
 import cz.edu.x3m.processing.execption.ExecutionException;
+import cz.edu.x3m.processing.execption.RunException;
 import cz.edu.x3m.processing.execution.IExecutableLanguage;
-import cz.edu.x3m.processing.execution.IExecutionResult;
 import cz.edu.x3m.processing.execution.impl.ExecutionSetting;
 import cz.edu.x3m.utils.ListUtil;
 import cz.edu.x3m.utils.PathResolver;
@@ -90,7 +90,7 @@ public class Controller implements IController {
 
 
 
-    private UpdateResult update (QueueItem queueItem) throws DatabaseException, ExecutionException, GradingException, Exception {
+    private UpdateResult update (QueueItem queueItem) throws DatabaseException, ExecutionException, GradingException, InvalidArgument {
 
         IRunEvaluation compilationResult;
         IRunEvaluation executionResult;
@@ -116,11 +116,25 @@ public class Controller implements IController {
             if (languageExec instanceof ICompilableLanguage) {
                 Log.info ("compiling");
                 ((ICompilableLanguage) languageExec).setCompileSettings (CompileSetting.create (queueItem));
-                compilationResult = compile ((ICompilableLanguage) languageExec);
+
+                // try to compile or die with error
+                try {
+                    compilationResult = compile ((ICompilableLanguage) languageExec);
+                } catch (RunException compileError) {
+                    // compile error
+                    Log.err ("compilation error");
+                    Log.err (compileError);
+                    Log.info ("saving to DB");
+                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_ERROR, compileError.getMessage ());
+                    Log.info ("deleting from queue");
+                    Globals.getDatabase ().deleteQueueItem (queueItem);
+                    return new UpdateResult (queueItem, AttemptStateType.COMPILATION_ERROR);
+                }
+
 
                 // Programmers error, throws ExtensionException
                 if (compilationResult == null)
-                    throw new Exception ("Extension error, compilation result cannot be null!");
+                    throw new RuntimeException ("Extension error, compilation result cannot be null!");
 
                 // Interrupted compilation, abort processing
                 if (compilationResult.isInterrupted ()) {
@@ -129,7 +143,7 @@ public class Controller implements IController {
                     Log.err (compilationResult.getThrowable ());
 
                     Log.info ("saving to DB");
-                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT, null);
+                    Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT, "Compile timeout");
                     Log.info ("deleting from queue");
                     Globals.getDatabase ().deleteQueueItem (queueItem);
                     return new UpdateResult (queueItem, AttemptStateType.COMPILATION_TIMEOUT);
@@ -146,19 +160,37 @@ public class Controller implements IController {
                     Log.info ("deleting from queue");
                     Globals.getDatabase ().deleteQueueItem (queueItem);
                     return new UpdateResult (queueItem, AttemptStateType.COMPILATION_ERROR);
+                } else {
+                    Log.info ("compilation successful");
+                    Log.info (compilationResult.print ());
                 }
+
             }
 
             // execute if compilation is success or there is no compilation needed
             executionResult = null;
             Log.info ("executing");
             languageExec.setExecutionSettings (ExecutionSetting.create (queueItem));
-            executionResult = execute (languageExec);
+
+            // try tu execute or die with error
+            try {
+                executionResult = execute (languageExec);
+            } catch (RunException executionError) {
+                // execution error
+                Log.err ("execution error");
+                Log.err (executionError);
+                Log.info ("saving to DB");
+                Globals.getDatabase ().saveGradingResult (queueItem, AttemptStateType.EXECUTION_ERROR, executionError.getMessage ());
+                Log.info ("deleting from queue");
+                Globals.getDatabase ().deleteQueueItem (queueItem);
+                return new UpdateResult (queueItem, AttemptStateType.EXECUTION_ERROR);
+            }
+
 
 
             // Programmers error, throws ExtensionException
             if (executionResult == null)
-                throw new Exception ("Extension error, compilation result cannot be null!");
+                throw new RuntimeException ("Extension error, compilation result cannot be null!");
 
             // Interrupted execution, abort processing
             if (executionResult.isInterrupted ()) {
@@ -185,7 +217,8 @@ public class Controller implements IController {
                 Globals.getDatabase ().deleteQueueItem (queueItem);
                 return new UpdateResult (queueItem, AttemptStateType.EXECUTION_ERROR);
             } else {
-                Log.info ("execution successfull");
+                Log.info ("execution successful");
+                Log.info (executionResult.print ());
                 queueItem.getAttemptItem ().setExecutionResult (executionResult);
 
                 // solution check will grade solution
@@ -196,8 +229,10 @@ public class Controller implements IController {
                 if (queueItem.getType () == QueueItemType.TYPE_MEASURE_VALUES)
                     return measureValues (queueItem, attemptItem, taskItem, executionResult);
             }
+
         } else if (queueItem.getType () == QueueItemType.TYPE_PLAGIARISM_CHECK) {
             // list holder and lists for items and for plags
+
             final IPlagObject plagList = queueItem.getPlagObject ();
             final List<IPlagPair> result = new ArrayList<> ();
             final List<AttemptItem> solutions = plagList.getItems ();
@@ -240,7 +275,18 @@ public class Controller implements IController {
                     continue;
 
                 // prepare first solution
-                comparator.prepare (new File (directoryA));
+                try {
+                    Log.info ("prepare for plagiarism");
+                    comparator.prepare (new File (directoryA));
+                } catch (CompareException e) {
+                    Log.err ("Plagiarism prepare error (%s)", itemA.getUserItem ().getFullname ());
+                    Log.err (e);
+
+                    if (isSimpleCheck)
+                        break;
+                    else
+                        continue;
+                }
 
                 for (int j = i + 1; j < size; j++) {
                     itemB = solutions.get (j);
@@ -257,7 +303,15 @@ public class Controller implements IController {
                         continue;
 
                     // compare files and grab result
-                    difference = comparator.compare (new File (directoryB));
+                    try {
+                        Log.info ("comparing possible duplicates");
+                        difference = comparator.compare (new File (directoryB));
+                    } catch (CompareException e) {
+                        Log.err ("Plagiarism comparing error (%s)", itemB.getUserItem ().getFullname ());
+                        Log.err (e);
+                        break;
+                    }
+
                     Log.info ("comparement  %1.2f %% %s %s", difference.getIdenticalLikelihood () * 100, itemA.getUserItem ().getFullname (), itemB.getUserItem ().getFullname ());
 
                     if (difference.getIdenticalLikelihood () >= 0.70)
@@ -279,7 +333,7 @@ public class Controller implements IController {
 
 
 
-    private IRunEvaluation compile (ICompilableLanguage compilableLanguage) throws Exception {
+    private IRunEvaluation compile (ICompilableLanguage compilableLanguage) throws RunException {
         IRunEvaluation result;
 
         compilableLanguage.preCompilation ();
@@ -291,7 +345,7 @@ public class Controller implements IController {
 
 
 
-    private IRunEvaluation execute (IExecutableLanguage executableLanguage) throws Exception {
+    private IRunEvaluation execute (IExecutableLanguage executableLanguage) throws RunException {
         IRunEvaluation result;
 
         executableLanguage.preExecution ();

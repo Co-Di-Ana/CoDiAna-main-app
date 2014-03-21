@@ -13,7 +13,7 @@ import cz.edu.x3m.net.KnockServerSocket;
 public class Globals {
 
     /** more information shown when DEBUG mode is on, other location for libraries are loaded */
-    public static final boolean DEBUG = Boolean.TRUE;
+    public static final boolean DEBUG = Boolean.FALSE;
     //
     private static IDatabase database;
     private static Config config;

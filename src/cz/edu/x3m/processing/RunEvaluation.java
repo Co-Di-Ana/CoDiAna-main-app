@@ -8,9 +8,9 @@ import cz.edu.x3m.utils.Strings;
  */
 public class RunEvaluation implements IRunEvaluation {
 
-    private static final int EXIT_TIMEOUT = 143;
+    private static final int EXIT_TIMEOUT = 137;
     private static final int EXIT_OK = 0;
-    private static final int EXIT_MEMORYOUT = 144;
+    private static final int EXIT_MEMORYOUT = EXIT_TIMEOUT + 1;
     private final IRunResult runResult;
 
 
@@ -100,13 +100,13 @@ public class RunEvaluation implements IRunEvaluation {
 
     @Override
     public String print () {
-        return Strings.create (
-                String.format ("%-12s: %s (%s)", "exit-value", getExitValue (), getExitMessage ()),
-                String.format ("%-12s: %s", "line-count", getLineCount ()),
-                String.format ("%-12s: %s", "memory-avg", getMemoryAvg ()),
-                String.format ("%-12s: %s", "run-time", getRunTime ()),
-                String.format ("%-12s: %s", "error", getError ()),
-                String.format ("%-12s: %s", "throwable", getThrowable ()) //
+        return Strings.create ("Result info:",
+                               String.format ("%-12s: %s (%s)", "exit-value", getExitValue (), getExitMessage ()),
+                               String.format ("%-12s: %s", "line-count", getLineCount ()),
+                               String.format ("%-12s: %s", "memory-avg", getMemoryAvg ()),
+                               String.format ("%-12s: %s", "run-time", getRunTime ()),
+                               String.format ("%-12s: %s", "error", getError ()),
+                               String.format ("%-12s: %s", "throwable", getThrowable ()) //
                 );
     }
 

@@ -52,6 +52,7 @@ public class LocalDatabase extends AbstractDatabase {
     private static Connection connection;
     private static PreparedStatement statement;
     private static int statementIndex;
+    //
     private static final String SAVE_GRADING_RESULT_FROM_EXEC = Strings.createAndReplace (
             "UPDATE                                 ",
             "       ::codiana_attempt               ",
@@ -303,6 +304,7 @@ public class LocalDatabase extends AbstractDatabase {
                 "    ordinal != -1 AND          ",
                 String.format ("state = %d", AttemptStateType.MEASUREMENT_OK.value ()),
                 ")                              ",
+                "GROUP BY A.userid             ",
                 "ORDER BY                       ",
                 getOrderQuery ("A", gradeMethod));
 
@@ -388,7 +390,8 @@ public class LocalDatabase extends AbstractDatabase {
                     statement.setInt (next (), result.getQueueItem ().getTaskID ());
                     statement.setInt (next (), pair.getFirst ().getUserID ());
                     statement.setInt (next (), pair.getSecond ().getUserID ());
-                    statement.setDouble (next (), pair.getDifference ().getIdenticalLikelihood ());
+                    final int resultValue = (int) (pair.getDifference ().getIdenticalLikelihood () * 100);
+                    statement.setInt (next (), resultValue);
                     statement.setNull (next (), Types.VARCHAR);
                 }
                 // execute

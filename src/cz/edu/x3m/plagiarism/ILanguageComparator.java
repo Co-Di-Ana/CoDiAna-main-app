@@ -1,5 +1,6 @@
 package cz.edu.x3m.plagiarism;
 
+import cz.edu.x3m.plagiarism.exception.CompareException;
 import java.io.File;
 
 /**
@@ -13,7 +14,7 @@ public interface ILanguageComparator {
      * @param dirA directory where all files are stored in tree file structure
      * @throws Exception when error occures while parsing, etc
      */
-    void prepare (File dirA) throws Exception;
+    void prepare (File dirA) throws CompareException;
 
 
 
@@ -23,7 +24,7 @@ public interface ILanguageComparator {
      * @return Difference between 2 solutions
      * @throws Exception when error occures while parsing, etc
      */
-    Difference compare (File dirB) throws Exception;
+    Difference compare (File dirB) throws CompareException;
 
 
 
@@ -34,5 +35,5 @@ public interface ILanguageComparator {
      * @return Difference between 2 solutions
      * @throws Exception when error occures while parsing, etc
      */
-    Difference compare (File dirA, File dirB) throws Exception;
+    Difference compare (File dirA, File dirB) throws CompareException;
 }
